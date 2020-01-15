@@ -1,6 +1,6 @@
 Name: grpc
-Version: 1.20.1
-Release: 5%{?dist}
+Version: 1.26.0
+Release: 1%{?dist}
 Summary: Modern, open source, high-performance remote procedure call (RPC) framework
 License: ASL 2.0
 URL: https://www.grpc.io
@@ -22,12 +22,7 @@ BuildRequires: python3-setuptools
 BuildRequires: python3-Cython
 
 Patch0: grpc-0001-enforce-system-crypto-policies.patch
-# https://github.com/grpc/grpc/pull/15532
-Patch1: grpc-0002-patch-from-15532.patch
-# https://github.com/grpc/grpc/pull/17732
-# Patch3: 0003-tcp_posix.cc-fix-typo-in-bitwise-condition.patch
 Patch2: grpc-0003-use-shell-loop-instead-makefile-function.patch
-Patch3: grpc-0004-use-gettid-from-glibc.patch
 
 %description
 gRPC is a modern open source high performance RPC framework that can run in any
@@ -75,7 +70,6 @@ Development headers and files for gRPC libraries.
 %package -n python3-grpcio
 Summary: Python language bindings for grpc, remote procedure call (RPC) framework
 Requires: %{name}%{?_isa} = %{version}-%{release}
-%{?python_provide:%python_provide python3-%{pypi_name}}
 
 %description -n python3-grpcio
 Python3 bindings for gRPC library.
@@ -83,9 +77,9 @@ Python3 bindings for gRPC library.
 %prep
 %autosetup -N
 %patch0 -p1
-%patch1 -p1
+#%patch1 -p1
 %patch2 -p1
-%patch3 -p1
+#%patch3 -p1
 sed -i 's:^prefix ?= .*:prefix ?= %{_prefix}:' Makefile
 sed -i 's:$(prefix)/lib:$(prefix)/%{_lib}:' Makefile
 sed -i 's:^GTEST_LIB =.*::' Makefile
@@ -112,8 +106,17 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %files
 %doc README.md
 %license LICENSE
-%{_libdir}/*.so.1*
-%{_libdir}/*.so.7*
+%{_libdir}/libaddress_sorting.so.9*
+%{_libdir}/libgpr.so.9*
+%{_libdir}/libgrpc++.so.1*
+%{_libdir}/libgrpc++_error_details.so.1*
+%{_libdir}/libgrpc++_reflection.so.1*
+%{_libdir}/libgrpc++_unsecure.so.1*
+%{_libdir}/libgrpc.so.9*
+%{_libdir}/libgrpc_cronet.so.9*
+%{_libdir}/libgrpc_unsecure.so.9*
+%{_libdir}/libgrpcpp_channelz.so.1*
+%{_libdir}/libup*.so.9*
 %{_datadir}/grpc
 
 %files cli
@@ -125,7 +128,17 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{_bindir}/grpc_*_plugin
 
 %files devel
-%{_libdir}/*.so
+%{_libdir}/libaddress_sorting.so
+%{_libdir}/libgpr.so
+%{_libdir}/libgrpc++.so
+%{_libdir}/libgrpc++_error_details.so
+%{_libdir}/libgrpc++_reflection.so
+%{_libdir}/libgrpc++_unsecure.so
+%{_libdir}/libgrpc.so
+%{_libdir}/libgrpc_cronet.so
+%{_libdir}/libgrpc_unsecure.so
+%{_libdir}/libgrpcpp_channelz.so
+%{_libdir}/libupb.so
 %{_libdir}/pkgconfig/*
 %{_includedir}/grpc
 %{_includedir}/grpc++
@@ -137,6 +150,9 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{python3_sitearch}/grpcio-%{version}-py?.?.egg-info
 
 %changelog
+* Wed Jan 15 2020 Sergey Avseyev <sergey.avseyev@gmail.com> - 1.26.0-1
+- Update to 1.26.0
+
 * Thu Dec 19 2019 Orion Poplawski <orion@nwra.com> - 1.20.1-5
 - Rebuild for protobuf 3.11
 
