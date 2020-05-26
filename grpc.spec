@@ -1,6 +1,6 @@
 Name: grpc
 Version: 1.26.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: Modern, open source, high-performance remote procedure call (RPC) framework
 License: ASL 2.0
 URL: https://www.grpc.io
@@ -150,6 +150,9 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{python3_sitearch}/grpcio-%{version}-py?.?.egg-info
 
 %changelog
+* Tue May 26 2020 Miro Hrončok <mhroncok@redhat.com> - 1.26.0-3
+- Rebuilt for Python 3.9
+
 * Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.26.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
