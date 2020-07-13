@@ -147,7 +147,7 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %files -n python3-grpcio
 %license LICENSE
 %{python3_sitearch}/grpc
-%{python3_sitearch}/grpcio-%{version}-py?.?.egg-info
+%{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
 
 %changelog
 * Sun Jun 14 2020 Adrian Reber <adrian@lisas.de> - 1.26.0-4
