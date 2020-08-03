@@ -1,6 +1,6 @@
 Name: grpc
 Version: 1.26.0
-Release: 5%{?dist}
+Release: 6%{?dist}
 Summary: Modern, open source, high-performance remote procedure call (RPC) framework
 License: ASL 2.0
 URL: https://www.grpc.io
@@ -23,6 +23,8 @@ BuildRequires: python3-Cython
 
 Patch0: grpc-0001-enforce-system-crypto-policies.patch
 Patch2: grpc-0003-use-shell-loop-instead-makefile-function.patch
+Patch3: 99f8a10aec994a8957fbb6787768b444ef34d6a2.patch
+Patch4: 72351f63fd650cc7acfcd2d0307e8e8e8f777283.patch
 
 %description
 gRPC is a modern open source high performance RPC framework that can run in any
@@ -79,7 +81,8 @@ Python3 bindings for gRPC library.
 %patch0 -p1
 #%patch1 -p1
 %patch2 -p1
-#%patch3 -p1
+%patch3 -p1
+%patch4 -p1
 sed -i 's:^prefix ?= .*:prefix ?= %{_prefix}:' Makefile
 sed -i 's:$(prefix)/lib:$(prefix)/%{_lib}:' Makefile
 sed -i 's:^GTEST_LIB =.*::' Makefile
@@ -150,6 +153,9 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
 
 %changelog
+* Mon Aug 03 2020 Gwyn Ciesla <gwync@protonmail.com> - 1.26.0-6
+- Patches for https://github.com/grpc/grpc/pull/21669
+
 * Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.26.0-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
 
