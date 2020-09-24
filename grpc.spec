@@ -1,6 +1,6 @@
 Name: grpc
 Version: 1.26.0
-Release: 6%{?dist}
+Release: 7%{?dist}
 Summary: Modern, open source, high-performance remote procedure call (RPC) framework
 License: ASL 2.0
 URL: https://www.grpc.io
@@ -153,6 +153,9 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
 
 %changelog
+* Thu Sep 24 2020 Adrian Reber <adrian@lisas.de> - 1.26.0-7
+- Rebuilt for protobuf 3.13
+
 * Mon Aug 03 2020 Gwyn Ciesla <gwync@protonmail.com> - 1.26.0-6
 - Patches for https://github.com/grpc/grpc/pull/21669
 
