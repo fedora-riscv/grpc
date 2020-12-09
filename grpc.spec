@@ -27,6 +27,7 @@ Patch0: grpc-0001-enforce-system-crypto-policies.patch
 Patch2: grpc-0003-use-shell-loop-instead-makefile-function.patch
 Patch3: 99f8a10aec994a8957fbb6787768b444ef34d6a2.patch
 Patch4: 72351f63fd650cc7acfcd2d0307e8e8e8f777283.patch
+Patch5: remove-gnu99.patch
 
 %description
 gRPC is a modern open source high performance RPC framework that can run in any
@@ -85,6 +86,7 @@ Python3 bindings for gRPC library.
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
+%patch5 -p1
 sed -i 's:^prefix ?= .*:prefix ?= %{_prefix}:' Makefile
 sed -i 's:$(prefix)/lib:$(prefix)/%{_lib}:' Makefile
 sed -i 's:^GTEST_LIB =.*::' Makefile
