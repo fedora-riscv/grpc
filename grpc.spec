@@ -22,6 +22,7 @@ BuildRequires: gperftools-devel
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-Cython
+BuildRequires: make
 
 Patch0: grpc-0001-enforce-system-crypto-policies.patch
 Patch2: grpc-0003-use-shell-loop-instead-makefile-function.patch
