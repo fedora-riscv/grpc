@@ -2,7 +2,7 @@
 
 Name: grpc
 Version: 1.26.0
-Release: 8%{?dist}
+Release: 9%{?dist}
 Summary: Modern, open source, high-performance remote procedure call (RPC) framework
 License: ASL 2.0
 URL: https://www.grpc.io
@@ -156,6 +156,9 @@ find %{buildroot} -type f -name '*.a' -exec rm -f {} \;
 %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
 
 %changelog
+* Thu Jan 14 08:46:34 CET 2021 Adrian Reber <adrian@lisas.de> - 1.26.0-9
+- Rebuilt for protobuf 3.14
+
 * Fri Nov 13 2020 Artem Polishchuk <ego.cordatus@gmail.com> - 1.26.0-8
 - build: disable LTO due to rh#1893533
 
