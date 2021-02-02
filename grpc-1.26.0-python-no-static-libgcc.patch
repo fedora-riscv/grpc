@@ -1,0 +1,12 @@
+diff -Naur grpc-1.26.0-original/setup.py grpc-1.26.0/setup.py
+--- grpc-1.26.0-original/setup.py	2019-12-17 20:29:27.000000000 -0500
++++ grpc-1.26.0/setup.py	2021-01-28 13:20:22.540840537 -0500
+@@ -197,7 +197,7 @@
+         ' -static-libgcc -static-libstdc++ -mcrtdll={msvcr}'
+         ' -static'.format(msvcr=msvcr))
+   if "linux" in sys.platform:
+-    EXTRA_ENV_LINK_ARGS += ' -Wl,-wrap,memcpy -static-libgcc'
++    EXTRA_ENV_LINK_ARGS += ' -Wl,-wrap,memcpy'
+ 
+ EXTRA_COMPILE_ARGS = shlex.split(EXTRA_ENV_COMPILE_ARGS)
+ EXTRA_LINK_ARGS = shlex.split(EXTRA_ENV_LINK_ARGS)

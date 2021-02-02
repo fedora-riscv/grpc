@@ -1,0 +1,32 @@
+Based on remove-gnu99.patch from
+https://src.fedoraproject.org/rpms/grpc/pull-request/3; corresponds to ignored
+upstream PR https://github.com/grpc/grpc/pull/23671. For consistency, we also
+patch a related shell script that we do not use.
+
+Using -std=gnu99 for C++ code makes GCC warn and clang error; besides, it makes
+no sense.
+
+diff -Naur grpc-1.26.0-original/setup.py grpc-1.26.0/setup.py
+--- grpc-1.26.0-original/setup.py	2019-12-17 20:29:27.000000000 -0500
++++ grpc-1.26.0/setup.py	2021-02-01 11:49:55.741613488 -0500
+@@ -179,7 +179,7 @@
+       # available dynamically
+       EXTRA_ENV_COMPILE_ARGS += ' /MT'
+   elif "linux" in sys.platform:
+-    EXTRA_ENV_COMPILE_ARGS += ' -std=gnu99 -fvisibility=hidden -fno-wrapv -fno-exceptions'
++    EXTRA_ENV_COMPILE_ARGS += ' -fvisibility=hidden -fno-wrapv -fno-exceptions'
+   elif "darwin" in sys.platform:
+     EXTRA_ENV_COMPILE_ARGS += ' -stdlib=libc++ -fvisibility=hidden -fno-wrapv -fno-exceptions'
+ 
+diff -Naur grpc-1.26.0-original/tools/run_tests/helper_scripts/build_python.sh grpc-1.26.0/tools/run_tests/helper_scripts/build_python.sh
+--- grpc-1.26.0-original/tools/run_tests/helper_scripts/build_python.sh	2019-12-17 20:29:27.000000000 -0500
++++ grpc-1.26.0/tools/run_tests/helper_scripts/build_python.sh	2021-02-01 11:49:37.059492917 -0500
+@@ -116,7 +116,7 @@
+ fi
+ 
+ ROOT=$(pwd)
+-export CFLAGS="-I$ROOT/include -std=gnu99 -fno-wrapv $CFLAGS"
++export CFLAGS="-I$ROOT/include -fno-wrapv $CFLAGS"
+ export GRPC_PYTHON_BUILD_WITH_CYTHON=1
+ export LANG=en_US.UTF-8
+ 

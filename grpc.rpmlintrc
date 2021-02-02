@@ -1,0 +1,14 @@
+# These are not real spelling errors...
+addFilter(r' spelling-error .*[ \(]en_US\)? (microservices|auth|gRPC|channelz|proto(buf)?|unary|rpc) ')
+# Maybe some of these are supposed to be CRNL-terminated:
+addFilter(r' wrong-file-end-of-line-encoding /usr/share/doc/grpc/examples/csharp/')
+# We generally follow upstream package metadata for these:
+addFilter(r' description-shorter-than-summary')
+# Many subpackages do not have their own documentation!
+addFilter(r' no-documentation')
+# We believe we have patched all calls to SSL_CTX_set_cipher_list with
+# hard-coded values to use "PROFILE=SYSTEM" instead, thereby complying with the
+# system policy.
+addFilter(r' crypto-policy-non-compliance-openssl .* SSL_CTX_set_cipher_list')
+# These will not dangle after the ca-certificates dependency is installed:
+addFilter(r' dangling-relative-symlink .*\.pem$')
