@@ -1,6 +1,24 @@
+# The CMake build works, except grpc_cli is only built with the tests.
+%bcond_with cmake
+
+# Note that, in this spec file,e building the tests requires using CMake.
+#
+# C/C++ tests still are not quite building correctly:
+#   /usr/bin/g++ -O2  -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64  -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection  -std=c++11 -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld CMakeFiles/alloc_test.dir/test/core/gpr/alloc_test.cc.o -o alloc_test  -Wl,-rpath,/builddir/build/BUILD/grpc-1.26.0/x86_64-redhat-linux-gnu  -ldl  -lrt  -lm  -lpthread  libgrpc_test_util_unsecure.so.9.0.0  libgrpc_unsecure.so.9.0.0  libgpr.so.9.0.0  /usr/lib64/libz.so  /usr/lib64/libcares.so.2.4.2  libaddress_sorting.so.9.0.0  libupb.so.9.0.0  -ldl  -lrt  -lm  -lpthread && :
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_secure_channel_create'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_local_credentials_create'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_credentials_release'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_credentials_set_auth_metadata_processor'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_channel_credentials_release'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_add_secure_http2_port'
+#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_local_server_credentials_create'
+#   collect2: error: ld returned 1 exit status
+%bcond_with core_tests
+
+
 Name:           grpc
 Version:        1.26.0
-Release:        11%{?dist}
+Release:        12%{?dist}
 Summary:        RPC library and framework
 
 # The entire source is ASL 2.0 except the following:
@@ -47,17 +65,27 @@ Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  gcc-c++
 BuildRequires:  pkgconfig
+%if %{with cmake}
+BuildRequires:  cmake
+BuildRequires:  ninja-build
+%else
 BuildRequires:  make
+%endif
 BuildRequires:  chrpath
 
+BuildRequires:  gflags-devel
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
 BuildRequires:  openssl-devel
 BuildRequires:  c-ares-devel
-BuildRequires:  gflags-devel
-BuildRequires:  gtest-devel
 BuildRequires:  zlib-devel
+
+%if %{with core_tests}
+BuildRequires:  google-benchmark-devel
+BuildRequires:  gtest-devel
+BuildRequires:  gmock-devel
 BuildRequires:  gperftools-devel
+%endif
 
 # ~~~~ Python ~~~~
 
@@ -89,8 +117,11 @@ BuildRequires:  dos2unix
 
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
 Patch0:         %{name}-0001-enforce-system-crypto-policies.patch
-Patch2:         %{name}-0003-use-shell-loop-instead-makefile-function.patch
+# Make gRPC podspec template more robust
+# https://github.com/grpc/grpc/pull/21445
 Patch3:         99f8a10aec994a8957fbb6787768b444ef34d6a2.patch
+# Remove grpc sources from grpc++
+# https://github.com/grpc/grpc/pull/21662
 Patch4:         72351f63fd650cc7acfcd2d0307e8e8e8f777283.patch
 # Based on remove-gnu99.patch from
 # https://src.fedoraproject.org/rpms/grpc/pull-request/3; corresponds to
@@ -343,10 +374,12 @@ packages:
 
 %prep
 %autosetup -p1
+%if %{without cmake}
 sed -i \
     -e 's:^prefix ?= .*:prefix ?= %{_prefix}:' \
     -e 's:$(prefix)/lib:$(prefix)/%{_lib}:' \
     -e 's:^GTEST_LIB =.*::' Makefile
+%endif
 
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
@@ -401,13 +434,61 @@ dos2unix \
     examples/cpp/helloworld/cmake_externalproject/CMakeLists.txt
 # We leave those under examples/csharp alone.
 
+%if %{with cmake}
+# Patch CMakeLists for external gtest/gmock.
+#
+#  1. Upstream expects single-source bundled copies, which are not distributed
+#     in the tarball. Create dummy sources, adding a typedef so the translation
+#     unit is not empty, rather than removing references to these sources from
+#     CMakeLists.txt. This is so that we do not end up with executables with no
+#     sources, only libraries, which is CMake error.
+#  2. Either remove references to the corresponding include directories, or
+#     create the directories and leave them empty.
+#  3. “Stuff” the external library into the target_link_libraries() for each
+#     test by noting that GMock/GTest/GFlags are always used together.
+for gwhat in test mock
+do
+  mkdir -p "third_party/googletest/google${gwhat}/src" \
+      "third_party/googletest/google${gwhat}/include"
+  echo "typedef int dummy_${gwhat}_type;" \
+      > "third_party/googletest/google${gwhat}/src/g${gwhat}-all.cc"
+done
+sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
+'\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
+%endif
+
 
 %build
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
+%if %{with cmake}
+# We could use either make or ninja as the backend; ninja is faster and has no
+# disadvantages (except a small additional BR, given we already need Python)
+%cmake \
+    -GNinja \
+    -DgRPC_INSTALL_BINDIR=%{_bindir} \
+    -DgRPC_INSTALL_LIBDIR=%{_libdir} \
+    -DgRPC_INSTALL_INCLUDEDIR=%{_includedir} \
+    -DgRPC_INSTALL_CMAKEDIR=%{_libdir}/cmake/%{name} \
+    -DgRPC_INSTALL_SHAREDIR=%{_datadir}/%{name} \
+    -DgRPC_BUILD_TESTS:BOOL=%{?with_core_tests:ON}%{?!with_core_tests:OFF} \
+    -DgRPC_BUILD_CODEGEN:BOOL=ON \
+    -DgRPC_BUILD_CSHARPEXT:BOOL=ON \
+    -DgRPC_BACKWARDS_COMPATIBILITY_MODE:BOOL=OFF \
+    -DgRPC_ZLIB_PROVIDER:STRING='package' \
+    -DgRPC_CARES_PROVIDER:STRING='package' \
+    -DgRPC_SSL_PROVIDER:STRING='package' \
+    -DgRPC_PROTOBUF_PROVIDER:STRING='package' \
+    -DgRPC_PROTOBUF_PACKAGE_TYPE:STRING='MODULE' \
+    -DgRPC_GFLAGS_PROVIDER:STRING='package' \
+    -DgRPC_BENCHMARK_PROVIDER:STRING='package' \
+    -DgRPC_USE_PROTO_LITE:BOOL=OFF
+%cmake_build
+%else
 %set_build_flags
 # Default targets are: static shared plugins
 %make_build shared plugins
+%endif
 
 # ~~~~ Python ~~~~
 
@@ -472,11 +553,15 @@ popd >/dev/null
 
 %install
 # ~~~~ C (core) and C++ (cpp) ~~~~
-# Do not strip debugging symbols!
+%if %{with cmake}
+%cmake_install
+#chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
+%else
 export STRIP=/bin/true
 make install prefix='%{buildroot}%{_prefix}'
 make install-grpc-cli prefix='%{buildroot}%{_prefix}'
 chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
+%endif
 # Remove any static libraries that may have been installed against our wishes
 find %{buildroot} -type f -name '*.a' -print -delete
 # Fix wrong permissions on installed headers
@@ -541,7 +626,9 @@ cp -rp doc/build '%{buildroot}%{pythondocdir}/html'
 
 
 %check
-# TODO: Run C/C++ test suite.
+%if %{with core_tests} && %{with cmake}
+%ctest
+%endif
 
 pushd src/python/grpcio_tests
 # Currently fails with
@@ -671,7 +758,13 @@ popd
 
 
 %changelog
-* Tue Feb  2 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-11
+* Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
+- C (core) and C++ (cpp):
+  * Add CMake build support but do not enable it yet; there is still a problem
+    where grpc_cli is only built with the tests, and a linking problem when
+    building the tests
+
+* Tue Feb 02 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-11
 - General:
   * Update summaries and descriptions
   * Update License fields to include licenses from bundled components
