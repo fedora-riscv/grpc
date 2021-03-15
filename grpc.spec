@@ -1,3 +1,14 @@
+# In gtest 1.36, we must link against the system abseil-cpp. We get linker
+# errors here if we are not using C++17.
+
+# However, gtest in Fedora uses the C++11 ABI, so we get linker errors building
+# the tests if we use C++17. We must therefore bundle a copy of gtest in the
+# source RPM rather than using the system copy. This is to be discouraged, but
+# there is no alternative in this case. It is not treated as a bundled library
+# because it is used only at build time, and is not installed.
+%global gtest_version 1.10.0
+%bcond_without system_gtest
+
 # The CMake build works, except grpc_cli is only built with the tests.
 %bcond_with cmake
 
@@ -14,7 +25,6 @@
 #   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_local_server_credentials_create'
 #   collect2: error: ld returned 1 exit status
 %bcond_with core_tests
-
 
 Name:           grpc
 Version:        1.26.0
@@ -64,6 +74,9 @@ License:        ASL 2.0 and BSD
 URL:            https://www.%{name}.io
 %global forgeurl https://github.com/%{name}/%{name}/
 Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
+# Used only at build time (not a bundled library); see notes at definition of
+# gtest_version macro for explanation and justification.
+Source1:        https://github.com/google/googletest/archive/release-%{gtest_version}.tar.gz
 
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
@@ -88,9 +101,11 @@ BuildRequires:  cmake(c-ares)
 
 %if %{with core_tests}
 BuildRequires:  cmake(benchmark)
+%if %{with system_gtest}
 BuildRequires:  cmake(gtest)
 BuildRequires:  pkgconfig(gmock)
 BuildRequires:  pkgconfig(libprofiler)
+%endif
 %endif
 
 # ~~~~ Python ~~~~
@@ -391,6 +406,33 @@ sed -i \
     -e 's:^GTEST_LIB =.*::' Makefile
 %endif
 
+%if %{without system_gtest}
+# Copy in the needed gtest/gmock implementations.
+%setup -q -T -D -b 1
+rm -rvf 'third_party/googletest'
+mv '../googletest-release-%{gtest_version}' 'third_party/googletest'
+%else
+# Patch CMakeLists for external gtest/gmock.
+#
+#  1. Create dummy sources, adding a typedef so the translation unit is not
+#     empty, rather than removing references to these sources from
+#     CMakeLists.txt. This is so that we do not end up with executables with no
+#     sources, only libraries, which is a CMake error.
+#  2. Either remove references to the corresponding include directories, or
+#     create the directories and leave them empty.
+#  3. “Stuff” the external library into the target_link_libraries() for each
+#     test by noting that GMock/GTest/GFlags are always used together.
+for gwhat in test mock
+do
+  mkdir -p "third_party/googletest/google${gwhat}/src" \
+      "third_party/googletest/google${gwhat}/include"
+  echo "typedef int dummy_${gwhat}_type;" \
+      > "third_party/googletest/google${gwhat}/src/g${gwhat}-all.cc"
+done
+sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
+'\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
+%endif
+
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
 
@@ -443,29 +485,6 @@ dos2unix \
     examples/cpp/helloworld/CMakeLists.txt \
     examples/cpp/helloworld/cmake_externalproject/CMakeLists.txt
 # We leave those under examples/csharp alone.
-
-%if %{with cmake}
-# Patch CMakeLists for external gtest/gmock.
-#
-#  1. Upstream expects single-source bundled copies, which are not distributed
-#     in the tarball. Create dummy sources, adding a typedef so the translation
-#     unit is not empty, rather than removing references to these sources from
-#     CMakeLists.txt. This is so that we do not end up with executables with no
-#     sources, only libraries, which is CMake error.
-#  2. Either remove references to the corresponding include directories, or
-#     create the directories and leave them empty.
-#  3. “Stuff” the external library into the target_link_libraries() for each
-#     test by noting that GMock/GTest/GFlags are always used together.
-for gwhat in test mock
-do
-  mkdir -p "third_party/googletest/google${gwhat}/src" \
-      "third_party/googletest/google${gwhat}/include"
-  echo "typedef int dummy_${gwhat}_type;" \
-      > "third_party/googletest/google${gwhat}/src/g${gwhat}-all.cc"
-done
-sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
-'\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
-%endif
 
 
 %build
@@ -656,6 +675,19 @@ env \
     %{__python3} %{py_setup} %{?py_setup_args} test_lite || :
 popd
 
+%if %{without system_gtest}
+# As a sanity check for our claim that gtest/gmock are not bundled, check
+# installed executables for symbols that appear to have come from gtest/gmock.
+foundgtest=0
+if find %{buildroot} -type f -perm /0111 \
+      -execdir objdump --syms --dynamic-syms --demangle '{}' '+' 2>/dev/null |
+    grep -E '[^:]testing::'
+then
+  echo 'Found traces of gtest/gmock' 1>&2
+  exit 1
+fi
+%endif
+
 
 %files
 %license LICENSE NOTICE.txt
@@ -776,6 +808,8 @@ popd
   * Drop explicit pkgconfig BR
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
+  * Allow building tests with our own copy of gtest/gmock, which will become
+    mandatory when we depend on abseil-cpp and switch to C++17
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
