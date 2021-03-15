@@ -149,19 +149,9 @@ Patch3:         99f8a10aec994a8957fbb6787768b444ef34d6a2.patch
 # Remove grpc sources from grpc++
 # https://github.com/grpc/grpc/pull/21662
 Patch4:         72351f63fd650cc7acfcd2d0307e8e8e8f777283.patch
-# Based on remove-gnu99.patch from
-# https://src.fedoraproject.org/rpms/grpc/pull-request/3; corresponds to
-# ignored upstream PR https://github.com/grpc/grpc/pull/23671. For consistency,
-# we also patch a related shell script that we do not use.
-# 
-# Using -std=gnu99 for C++ code makes GCC warn and clang error; besides, it
-# makes no sense.
-Patch5:         %{name}-1.26.0-python-no-std-gnu99.patch
 # Backport upstream commit 9e0b427893b65b220faf8a31a6afdc67f6f41364 “Use !=
 # with literals”
 Patch6:         %{name}-1.26.0-python-SyntaxWarning.patch
-# Stop adding -static-libgcc when linking Python bindings
-Patch7:         %{name}-1.26.0-python-no-static-libgcc.patch
 # Build python3-grpcio_tools against system protobuf packages instead of
 # expecting a git submodule. Must also add requisite linker flags using
 # GRPC_PYTHON_LDFLAGS.
@@ -563,6 +553,18 @@ export PYTHONPATH
 
 # ~~ grpcio ~~
 %set_grpc_python_environment
+# We must set GRPC_PYTHON_CFLAGS to avoid unwanted defaults. We take the
+# upstream flags except that we remove -std=c99, which is inapplicable to the
+# C++ parts of the extension.
+#
+# We must set GRPC_PYTHON_LDFLAGS to avoid unwanted defaults. The upstream
+# flags attempt to statically link libgcc, so we do not need any of them. Since
+# we forcibly unbundle protobuf, we need to add linker flags for protobuf
+# ourselves.
+export GRPC_PYTHON_CFLAGS="-fvisibility=hidden -fno-wrapv -fno-exceptions $(
+  pkg-config --cflags protobuf
+)"
+export GRPC_PYTHON_LDFLAGS="$(pkg-config --libs protobuf)"
 %py3_build
 %{__python3} %{py_setup} %{?py_setup_args} install \
     -O1 --skip-build --root "${PYROOT}"
@@ -578,10 +580,12 @@ do
   cp -rp "../../../../src/${srcdir}" "%{name}_root/src/"
 done
 cp -rp '../../../../include' '%{name}_root/'
-(
-  export GRPC_PYTHON_LDFLAGS='-lprotoc'
-  %py3_build
-)
+# We must set GRPC_PYTHON_CFLAGS and GRPC_PYTHON_LDFLAGS again; grpcio_tools
+# does not have the same default upstream flags as grpcio does, and it needs to
+# link the protobuf compiler library.
+export GRPC_PYTHON_CFLAGS="-fno-wrapv -frtti $(pkg-config --cflags protobuf)"
+export GRPC_PYTHON_LDFLAGS="$(pkg-config --libs protobuf) -lprotoc"
+%py3_build
 # Remove unwanted shebang from grpc_tools.protoc source file, which will be
 # installed without an executable bit:
 find . -type f -name protoc.py -execdir sed -r -i '1{/^#!/d}' '{}' '+'
@@ -590,21 +594,20 @@ find . -type f -name protoc.py -execdir sed -r -i '1{/^#!/d}' '{}' '+'
 popd >/dev/null
 
 # ~~ pure-python modules grpcio-* ~~
-for suffix in channelz health_checking reflection status testing
+for suffix in channelz health_checking reflection status testing tests
 do
   echo "----> grpcio_${suffix} <----" 1>&2
   pushd "src/python/grpcio_${suffix}/" >/dev/null
+  %{__python3} %{py_setup} %{?py_setup_args} preprocess
+  if [ "${suffix}" != 'testing' ]
+  then
+    %{__python3} %{py_setup} %{?py_setup_args} build_package_protos
+  fi
   %py3_build
   %{__python3} %{py_setup} %{?py_setup_args} install \
       -O1 --skip-build --root "${PYROOT}"
   popd >/dev/null
 done
-
-# ~~ grpcio-tests ~~
-echo '----> grpcio_tests <----'
-pushd 'src/python/grpcio_tests/' >/dev/null
-%py3_build
-popd >/dev/null
 
 # ~~ documentation ~~
 %{__python3} %{py_setup} %{?py_setup_args} doc
@@ -848,6 +851,10 @@ fi
 - Python:
   * Add several patches required for the tests
   * BR gevent for gevent_tests
+  * Fix build; in particular, add missing preprocess and build_package_protos
+    steps, without which the packages were missing generated proto modules and
+    were not
+    usable!
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
