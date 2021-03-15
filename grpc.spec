@@ -462,6 +462,9 @@ sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 '\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
 %endif
 
+# Fix gflags CMake target name for dynamic linking:
+sed -r -i 's/\b(gflags::gflags)\b/\1_shared/g' cmake/gflags.cmake
+
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
 
@@ -874,6 +877,7 @@ fi
   * Drop explicit pkgconfig BR
   * Fix the directory in which CMake installs pkgconfig files
   * Improved CMake options
+  * Fix gflags CMake target name for dynamic linking
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
