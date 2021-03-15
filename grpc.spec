@@ -786,6 +786,7 @@ fi
 %{_libdir}/lib%{name}++_error_details.so.%{cpp_so_version}*
 %{_libdir}/lib%{name}++_reflection.so.%{cpp_so_version}*
 %{_libdir}/lib%{name}++_unsecure.so.%{cpp_so_version}*
+
 %{_libdir}/lib%{name}pp_channelz.so.%{cpp_so_version}*
 
 
