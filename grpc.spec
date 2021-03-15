@@ -21,6 +21,13 @@ Version:        1.26.0
 Release:        13%{?dist}
 Summary:        RPC library and framework
 
+# CMakeLists.txt: gRPC_CORE_SOVERSION
+%global c_so_version 15
+# CMakeLists.txt: gRPC_CPP_SOVERSION
+%global cpp_so_version 1
+# CMakeLists.txt: gRPC_CSHARP_SOVERSION
+%global csharp_so_version 2
+
 # The entire source is ASL 2.0 except the following:
 #
 # BSD:
@@ -59,9 +66,6 @@ URL:            https://www.%{name}.io
 Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 # ~~~~ C (core) and C++ (cpp) ~~~~
-
-%global c_so_version 9
-%global cpp_so_version 1
 
 BuildRequires:  gcc-c++
 BuildRequires:  pkgconfig
