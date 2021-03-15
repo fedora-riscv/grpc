@@ -77,18 +77,21 @@ BuildRequires:  make
 %endif
 BuildRequires:  chrpath
 
-BuildRequires:  gflags-devel
-BuildRequires:  protobuf-devel
+BuildRequires:  pkgconfig(zlib)
+BuildRequires:  cmake(gflags)
+BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  protobuf-compiler
+
 BuildRequires:  openssl-devel
 BuildRequires:  c-ares-devel
-BuildRequires:  zlib-devel
+BuildRequires:  pkgconfig(openssl)
+BuildRequires:  cmake(c-ares)
 
 %if %{with core_tests}
-BuildRequires:  google-benchmark-devel
-BuildRequires:  gtest-devel
-BuildRequires:  gmock-devel
-BuildRequires:  gperftools-devel
+BuildRequires:  cmake(benchmark)
+BuildRequires:  cmake(gtest)
+BuildRequires:  pkgconfig(gmock)
+BuildRequires:  pkgconfig(libprofiler)
 %endif
 
 # ~~~~ Python ~~~~
@@ -767,6 +770,8 @@ popd
 * Mon Mar 15 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
   * Replace * with • in descriptions
+  * Use cmake() dependencies first, and pkgconfig() dependencies second, where
+    available
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
