@@ -68,7 +68,6 @@ Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
 BuildRequires:  gcc-c++
-BuildRequires:  pkgconfig
 %if %{with cmake}
 BuildRequires:  cmake
 BuildRequires:  ninja-build
@@ -772,6 +771,7 @@ popd
   * Replace * with • in descriptions
   * Use cmake() dependencies first, and pkgconfig() dependencies second, where
     available
+  * Drop explicit pkgconfig BR
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
