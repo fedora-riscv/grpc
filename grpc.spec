@@ -516,15 +516,15 @@ sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 # We could use either make or ninja as the backend; ninja is faster and has no
 # disadvantages (except a small additional BR, given we already need Python)
 %cmake \
-    -GNinja \
-    -DgRPC_INSTALL_BINDIR=%{_bindir} \
-    -DgRPC_INSTALL_LIBDIR=%{_libdir} \
-    -DgRPC_INSTALL_INCLUDEDIR=%{_includedir} \
-    -DgRPC_INSTALL_CMAKEDIR=%{_libdir}/cmake/%{name} \
-    -DgRPC_INSTALL_SHAREDIR=%{_datadir}/%{name} \
+    -DgRPC_INSTALL:BOOL=ON \
+    -DgRPC_INSTALL_BINDIR:PATH=%{_bindir} \
+    -DgRPC_INSTALL_LIBDIR:PATH=%{_libdir} \
+    -DgRPC_INSTALL_INCLUDEDIR:PATH=%{_includedir} \
+    -DgRPC_INSTALL_CMAKEDIR:PATH=%{_libdir}/cmake/%{name} \
+    -DgRPC_INSTALL_SHAREDIR:PATH=%{_datadir}/%{name} \
     -DgRPC_BUILD_TESTS:BOOL=%{?with_core_tests:ON}%{?!with_core_tests:OFF} \
     -DgRPC_BUILD_CODEGEN:BOOL=ON \
-    -DgRPC_BUILD_CSHARPEXT:BOOL=ON \
+    -DgRPC_BUILD_CSHARP_EXT:BOOL=ON \
     -DgRPC_BACKWARDS_COMPATIBILITY_MODE:BOOL=OFF \
     -DgRPC_ZLIB_PROVIDER:STRING='package' \
     -DgRPC_CARES_PROVIDER:STRING='package' \
@@ -533,7 +533,15 @@ sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
     -DgRPC_PROTOBUF_PACKAGE_TYPE:STRING='MODULE' \
     -DgRPC_GFLAGS_PROVIDER:STRING='package' \
     -DgRPC_BENCHMARK_PROVIDER:STRING='package' \
-    -DgRPC_USE_PROTO_LITE:BOOL=OFF
+    -DgRPC_USE_PROTO_LITE:BOOL=OFF \
+    -DgRPC_BUILD_GRPC_CPP_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_CSHARP_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_NODE_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_PHP_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_PYTHON_PLUGIN:BOOL=ON \
+    -DgRPC_BUILD_GRPC_RUBY_PLUGIN:BOOL=ON \
+    -GNinja
 %cmake_build
 %else
 %set_build_flags
@@ -831,6 +839,7 @@ fi
     available
   * Drop explicit pkgconfig BR
   * Fix the directory in which CMake installs pkgconfig files
+  * Improved CMake options
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
