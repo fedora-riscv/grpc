@@ -817,6 +817,10 @@ fi
 %{_libdir}/lib%{name}pp_channelz.so
 %{_includedir}/%{name}pp
 
+%if %{with cmake}
+%{_libdir}/cmake/*.cmake
+%endif
+
 
 %files -n python3-grpcio
 %license LICENSE NOTICE.txt
@@ -876,6 +880,7 @@ fi
     mandatory when we depend on abseil-cpp and switch to C++17
   * Fix a link error in the core tests when using CMake
   * Manually install grpc_cli (CMake)
+  * Add CMake files to the files list for the -devel package
 - Python:
   * Add several patches required for the tests
   * BR gevent for gevent_tests
