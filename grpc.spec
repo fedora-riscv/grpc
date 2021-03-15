@@ -617,7 +617,11 @@ done
 # ~~~~ C (core) and C++ (cpp) ~~~~
 %if %{with cmake}
 %cmake_install
-#chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
+# For some reason, grpc_cli is not installed. Do it manually.
+install -t '%{buildroot}%{_bindir}' -p -D '%{_vpath_builddir}/%{name}_cli'
+# grpc_cli build does not respect CMAKE_INSTALL_RPATH
+# https://github.com/grpc/grpc/issues/25176
+chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
 %else
 export STRIP=/bin/true
 make install prefix='%{buildroot}%{_prefix}'
@@ -850,6 +854,7 @@ fi
   * Allow building tests with our own copy of gtest/gmock, which will become
     mandatory when we depend on abseil-cpp and switch to C++17
   * Fix a link error in the core tests when using CMake
+  * Manually install grpc_cli (CMake)
 - Python:
   * Add several patches required for the tests
   * BR gevent for gevent_tests
