@@ -657,6 +657,8 @@ do
   %py3_install
   popd >/dev/null
 done
+# The grpcio_tests package should not be installed; it would provide top-level
+# packages with generic names like “tests” or “tests_aio”.
 
 # ~~~~ Miscellaneous ~~~~
 
