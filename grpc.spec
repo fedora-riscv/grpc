@@ -288,6 +288,7 @@ Summary:        Development files for gRPC library
 # License:        same as base package
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
+Requires:       cmake-filesystem
 
 %description devel
 Development headers and files for gRPC libraries (both C and C++).
@@ -773,6 +774,8 @@ popd
   * Use cmake() dependencies first, and pkgconfig() dependencies second, where
     available
   * Drop explicit pkgconfig BR
+- C (core) and C++ (cpp):
+  * Let the -devel package require cmake-filesystem
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
