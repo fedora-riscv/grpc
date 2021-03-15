@@ -124,6 +124,8 @@ BuildRequires:  python3dist(setuptools)
 BuildRequires:  pyproject-rpm-macros
 # Not automatically generated even when we set GRPC_PYTHON_BUILD_WITH_CYTHON:
 BuildRequires:  python3dist(cython)
+# Required for “test_gevent” tests:
+BuildRequires:  python3dist(gevent)
 # Otherwise, we use generated BR’s.
 
 # ~~~~ Miscellaneous ~~~~
@@ -831,6 +833,7 @@ fi
   * Fix a link error in the core tests when using CMake
 - Python:
   * Add several patches required for the tests
+  * BR gevent for gevent_tests
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
