@@ -1,0 +1,23 @@
+diff -Naur grpc-1.26.0-original/src/python/grpcio_tests/tests/health_check/_health_servicer_test.py grpc-1.26.0/src/python/grpcio_tests/tests/health_check/_health_servicer_test.py
+--- grpc-1.26.0-original/src/python/grpcio_tests/tests/health_check/_health_servicer_test.py	2019-12-17 20:29:27.000000000 -0500
++++ grpc-1.26.0/src/python/grpcio_tests/tests/health_check/_health_servicer_test.py	2021-03-15 09:15:08.419558680 -0400
+@@ -235,8 +235,7 @@
+ 
+     def setUp(self):
+         self._thread_pool = thread_pool.RecordingThreadPool(max_workers=None)
+-        super(HealthServicerTest, self).start_server(
+-            non_blocking=True, thread_pool=self._thread_pool)
++        super().start_server(non_blocking=True, thread_pool=self._thread_pool)
+ 
+     def test_check_empty_service(self):
+         request = health_pb2.HealthCheckRequest()
+@@ -273,8 +272,7 @@
+ class HealthServicerBackwardsCompatibleWatchTest(BaseWatchTests.WatchTests):
+ 
+     def setUp(self):
+-        super(HealthServicerBackwardsCompatibleWatchTest, self).start_server(
+-            non_blocking=False, thread_pool=None)
++        super().start_server(non_blocking=False, thread_pool=None)
+ 
+ 
+ if __name__ == '__main__':

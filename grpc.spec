@@ -172,6 +172,22 @@ Patch9:         %{name}-1.26.0-grpcio-tests-setup-without-grpcio-tools.patch
 # In grpcio-tests, require enum34 for install only on those ancient Pythons
 # that require it; we are not using such a Python!
 Patch10:        %{name}-1.26.0-grpcio-tests-conditionalize-enum34.patch
+# Fix errors like:
+#   TypeError: super(type, obj): obj must be an instance or subtype of type
+# It is not clear why these occur.
+Patch11:        %{name}-1.26.0-python-grpcio_tests-fixture-super.patch
+# Skip tests requiring non-loopback network access when the
+# FEDORA_NO_NETWORK_TESTS environment variable is set.
+Patch12:        %{name}-1.26.0-grpcio_tests-make-network-tests-skippable.patch
+# Fix link errors in the core tests: the test library grpc_test_util_unsecure
+# does require the “secure” library “grpc”
+Patch13:        %{name}-1.26.0-core-tests-link-errors.patch
+# A handful of compression tests miss the compression ratio threshold. It seems
+# to be inconsistent which particular combinations fail in a particular test
+# run. It is not clear that this is a real problem. Any help in understanding
+# the actual cause well enough to fix this or usefully report it upstream is
+# welcome.
+Patch14:        %{name}-1.36.0-python-grpcio_tests-skip-compression-tests.patch
 
 Requires:       %{name}-data = %{version}-%{release}
 
@@ -655,6 +671,8 @@ cp -rp doc/build '%{buildroot}%{pythondocdir}/html'
 
 
 %check
+export FEDORA_NO_NETWORK_TESTS=1
+
 %if %{with core_tests} && %{with cmake}
 %ctest
 %endif
@@ -810,6 +828,9 @@ fi
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
     mandatory when we depend on abseil-cpp and switch to C++17
+  * Fix a link error in the core tests when using CMake
+- Python:
+  * Add several patches required for the tests
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):

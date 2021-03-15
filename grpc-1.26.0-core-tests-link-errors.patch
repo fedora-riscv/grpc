@@ -1,0 +1,11 @@
+diff -Naur grpc-1.26.0-original/CMakeLists.txt grpc-1.26.0/CMakeLists.txt
+--- grpc-1.26.0-original/CMakeLists.txt	2019-12-17 20:29:27.000000000 -0500
++++ grpc-1.26.0/CMakeLists.txt	2021-03-15 09:17:35.873493405 -0400
+@@ -2609,6 +2609,7 @@
+   ${_gRPC_ALLTARGETS_LIBRARIES}
+   gpr
+   grpc_unsecure
++  grpc
+   upb
+ )
+ if(_gRPC_PLATFORM_IOS OR _gRPC_PLATFORM_MAC)
