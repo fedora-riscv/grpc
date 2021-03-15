@@ -504,6 +504,10 @@ dos2unix \
     examples/cpp/helloworld/cmake_externalproject/CMakeLists.txt
 # We leave those under examples/csharp alone.
 
+# Fix the install path for .pc files
+# https://github.com/grpc/grpc/issues/25635
+sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
+
 
 %build
 # ~~~~ C (core) and C++ (cpp) ~~~~
@@ -826,6 +830,7 @@ fi
   * Use cmake() dependencies first, and pkgconfig() dependencies second, where
     available
   * Drop explicit pkgconfig BR
+  * Fix the directory in which CMake installs pkgconfig files
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
