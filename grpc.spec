@@ -320,6 +320,9 @@ Development headers and files for gRPC libraries (both C and C++).
 %package -n python3-grpcio
 Summary:        Python language bindings for gRPC
 # License:        same as base package
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio
+%endif
 
 # Note that the Python package has no runtime dependency on the base C library;
 # everything it needs is bundled.
@@ -332,6 +335,9 @@ Python language bindings for gRPC (HTTP/2-based RPC framework).
 %package -n python3-grpcio-tools
 Summary:       Package for gRPC Python tools
 # License:        same as base package
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-tools
+%endif
 
 %description -n python3-grpcio-tools
 Package for gRPC Python tools.
@@ -341,6 +347,9 @@ Package for gRPC Python tools.
 Summary:        Channel Level Live Debug Information Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-channelz
+%endif
 
 %description -n python3-grpcio-channelz
 Channelz is a live debug tool in gRPC Python.
@@ -350,6 +359,9 @@ Channelz is a live debug tool in gRPC Python.
 Summary:        Standard Health Checking Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-health-checking
+%endif
 
 %description -n python3-grpcio-health-checking
 Reference package for GRPC Python health checking.
@@ -359,6 +371,9 @@ Reference package for GRPC Python health checking.
 Summary:        Standard Protobuf Reflection Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-reflections
+%endif
 
 %description -n python3-grpcio-reflection
 Reference package for reflection in GRPC Python.
@@ -368,6 +383,9 @@ Reference package for reflection in GRPC Python.
 Summary:        Status proto mapping for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-status
+%endif
 
 %description -n python3-grpcio-status
 Reference package for GRPC Python status proto mapping.
@@ -377,6 +395,9 @@ Reference package for GRPC Python status proto mapping.
 Summary:        Testing utilities for gRPC Python
 License:        ASL 2.0
 BuildArch:      noarch
+%if 0%{?fedora} == 32
+%py_provides python3-grpcio-testing
+%endif
 
 %description -n python3-grpcio-testing
 Testing utilities for gRPC Python.
@@ -862,6 +883,7 @@ fi
     steps, without which the packages were missing generated proto modules and
     were not
     usable!
+  * Add %%py_provides for Fedora 32
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
