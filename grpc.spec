@@ -115,6 +115,8 @@ BuildRequires:  symlinks
 
 BuildRequires:  dos2unix
 
+# Apply Fedora system crypto policies. Since this is Fedora-specific, the patch
+# is not suitable for upstream.
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
 Patch0:         %{name}-0001-enforce-system-crypto-policies.patch
 # Make gRPC podspec template more robust
