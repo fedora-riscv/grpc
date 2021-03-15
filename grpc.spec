@@ -18,7 +18,7 @@
 
 Name:           grpc
 Version:        1.26.0
-Release:        12%{?dist}
+Release:        13%{?dist}
 Summary:        RPC library and framework
 
 # The entire source is ASL 2.0 except the following:
@@ -181,16 +181,16 @@ connect devices, mobile applications and browsers to backend services.
 
 The main usage scenarios:
 
-  * Efficiently connecting polyglot services in microservices style architecture
-  * Connecting mobile devices, browser clients to backend services
-  * Generating efficient client libraries
+  • Efficiently connecting polyglot services in microservices style architecture
+  • Connecting mobile devices, browser clients to backend services
+  • Generating efficient client libraries
 
 Core Features that make it awesome:
 
-  * Idiomatic client libraries in 10 languages
-  * Highly efficient on wire and with a simple service definition framework
-  * Bi-directional streaming with http/2 based transport
-  * Pluggable auth, tracing, load balancing and health checking
+  • Idiomatic client libraries in 10 languages
+  • Highly efficient on wire and with a simple service definition framework
+  • Bi-directional streaming with http/2 based transport
+  • Pluggable auth, tracing, load balancing and health checking
 
 This package provides the shared C core library.
 
@@ -262,16 +262,16 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description cli
 The command line tool can do the following things:
 
-  * Send unary rpc.
-  * Attach metadata and display received metadata.
-  * Handle common authentication to server.
-  * Infer request/response types from server reflection result.
-  * Find the request/response types from a given proto file.
-  * Read proto request in text form.
-  * Read request in wire form (for protobuf messages, this means serialized
+  • Send unary rpc.
+  • Attach metadata and display received metadata.
+  • Handle common authentication to server.
+  • Infer request/response types from server reflection result.
+  • Find the request/response types from a given proto file.
+  • Read proto request in text form.
+  • Read request in wire form (for protobuf messages, this means serialized
     binary form).
-  * Display proto response in text form.
-  * Write response in wire form to a file.
+  • Display proto response in text form.
+  • Write response in wire form to a file.
 
 
 %package devel
@@ -364,12 +364,12 @@ Provides:       python-grpcio-testing-doc = %{version}-%{release}
 Documentation for Python language bindings for gRPC, including the following
 packages:
 
-  * grpcio
-  * grpcio_channelz
-  * grpcio_health_checking
-  * grpcio_reflection
-  * grpcio_status
-  * grpcio_testing
+  • grpcio
+  • grpcio_channelz
+  • grpcio_health_checking
+  • grpcio_reflection
+  • grpcio_status
+  • grpcio_testing
 
 
 %prep
@@ -758,6 +758,10 @@ popd
 
 
 %changelog
+* Mon Mar 15 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
+- General:
+  * Replace * with • in descriptions
+
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
   * Add CMake build support but do not enable it yet; there is still a problem
