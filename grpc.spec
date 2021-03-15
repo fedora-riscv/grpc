@@ -96,12 +96,13 @@ BuildRequires:  pkgconfig(libprofiler)
 # ~~~~ Python ~~~~
 
 %global set_grpc_python_environment %{expand:
-export GRPC_PYTHON_BUILD_WITH_CYTHON=True
-export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=True
-export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=True
-export GRPC_PYTHON_BUILD_SYSTEM_CARES=True
-export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY=True
-export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD=True}
+export GRPC_PYTHON_BUILD_WITH_CYTHON='True'
+export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL='True'
+export GRPC_PYTHON_BUILD_SYSTEM_ZLIB='True'
+export GRPC_PYTHON_BUILD_SYSTEM_CARES='True'
+export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY='True'
+export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
+}
 
 BuildRequires:  python3-devel
 BuildRequires:  python3dist(setuptools)
