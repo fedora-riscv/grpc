@@ -12,19 +12,20 @@
 # The CMake build works, except grpc_cli is only built with the tests.
 %bcond_with cmake
 
-# Note that, in this spec file,e building the tests requires using CMake.
-#
-# C/C++ tests still are not quite building correctly:
-#   /usr/bin/g++ -O2  -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64  -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection  -std=c++11 -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld CMakeFiles/alloc_test.dir/test/core/gpr/alloc_test.cc.o -o alloc_test  -Wl,-rpath,/builddir/build/BUILD/grpc-1.26.0/x86_64-redhat-linux-gnu  -ldl  -lrt  -lm  -lpthread  libgrpc_test_util_unsecure.so.9.0.0  libgrpc_unsecure.so.9.0.0  libgpr.so.9.0.0  /usr/lib64/libz.so  /usr/lib64/libcares.so.2.4.2  libaddress_sorting.so.9.0.0  libupb.so.9.0.0  -ldl  -lrt  -lm  -lpthread && :
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_secure_channel_create'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_local_credentials_create'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_credentials_release'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_credentials_set_auth_metadata_processor'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_channel_credentials_release'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_server_add_secure_http2_port'
-#   /usr/bin/ld: libgrpc_test_util_unsecure.so.9.0.0: undefined reference to `grpc_local_server_credentials_create'
-#   collect2: error: ld returned 1 exit status
+# Note that, in this spec file, building the tests requires using CMake.
 %bcond_with core_tests
+
+# A few failing Python “test_lite” tests are skipped without understanding.
+# This lets us easily re-enable them to try to work toward a fix or a useful
+# upstream bug report.
+%bcond_with unexplained_failing_python_lite_tests
+
+# A great many of these tests (over 20%) fail. Any help in understanding these
+# well enough to fix them or report them upstream is welcome.
+%bcond_with python_aio_tests
+
+# Several of these still fail. We should try to work toward re-enabling this.
+%bcond_with python_gevent_tests
 
 Name:           grpc
 Version:        1.26.0
@@ -32,7 +33,7 @@ Release:        13%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 15
+%global c_so_version 9
 # CMakeLists.txt: gRPC_CPP_SOVERSION
 %global cpp_so_version 1
 # CMakeLists.txt: gRPC_CSHARP_SOVERSION
@@ -461,8 +462,12 @@ sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 '\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
 %endif
 
-# Fix gflags CMake target name for dynamic linking:
-sed -r -i 's/\b(gflags::gflags)\b/\1_shared/g' cmake/gflags.cmake
+# Currently, the correct flags for linking against the gflags shared library
+# are silently not found. Since the gflags dependency goes away in a later
+# version of grpc, we just hack in the correct flags rather than taking the
+# time to fix it properly.
+sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
+'\1gflags_shared/' CMakeLists.txt
 
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
@@ -520,6 +525,50 @@ dos2unix \
 # Fix the install path for .pc files
 # https://github.com/grpc/grpc/issues/25635
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
+
+%if %{without unexplained_failing_python_lite_tests}
+%ifarch %{arm32}
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
+\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/testing/_client_test.py'
+%endif
+%if %{__isa_bits} == 32
+# These tests fail with:
+#   OverflowError: Python int too large to convert to C ssize_t
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i \
+    "s/^([[:blank:]]*)(def test(SSLSessionCacheLRU|SessionResumption))\\b/\
+\\1@unittest.skip('Unexplained overflow error on 32-bit')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_auth_context_test.py' \
+    'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
+%endif
+
+# These will no longer be a problem on grpc 1.36:
+sed -r -i \
+    "s/^([[:blank:]]*)(class SecureServerSecureClient\(.*:)$/\
+\\1@unittest.skip('Unexplained hang')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_cython/cygrpc_test.py'
+sed -r -i \
+    "s/^([[:blank:]]*)(def test_(stream_unary|unary_stream))\\b/\
+\\1@unittest.skip('Unexplained hang')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/beta/_beta_features_test.py'
+sed -r -i \
+    "s/^([[:blank:]]*)(def test(Secure(No|Client)Cert|SessionResumption))\\b/\
+\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_auth_context_test.py'
+%if %{__isa_bits} != 32
+# (otherwise this was already done above)
+sed -r -i \
+    "s/^([[:blank:]]*)(def testSSLSessionCacheLRU)\\b/\
+\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
+%endif
+sed -r -i \
+    "s/^([[:blank:]]*)(def test_(stream_stream|unary_unary|stub_context))\\b/\
+\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/beta/_beta_features_test.py'
+%endif
 
 
 %build
@@ -724,19 +773,20 @@ export FEDORA_NO_NETWORK_TESTS=1
 %endif
 
 pushd src/python/grpcio_tests
-# Currently fails with
-#   ModuleNotFoundError: No module named 'grpc_channelz.v1.channelz_pb2'
-# Will look into this if it continues on the latest version.
-
-# See the implementation of the %%pytest macro, upon which our environment
-# setup is based:
-env \
-    CFLAGS="${CFLAGS:-${RPM_OPT_FLAGS}}" \
-    LDFLAGS="${LDFLAGS:-${RPM_LD_FLAGS}}" \
-    PATH="%{buildroot}%{_bindir}:$PATH" \
-    PYTHONPATH="${PYTHONPATH:-%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}}" \
-    PYTHONDONTWRITEBYTECODE=1 \
-    %{__python3} %{py_setup} %{?py_setup_args} test_lite || :
+for suite in \
+    test_lite \
+    %{?with_python_aio_tests:test_aio} \
+    %{?with_python_gevent_tests:test_gevent}
+do
+  # See the implementation of the %%pytest macro, upon which our environment
+  # setup is based:
+  env CFLAGS="${CFLAGS:-${RPM_OPT_FLAGS}}" \
+      LDFLAGS="${LDFLAGS:-${RPM_LD_FLAGS}}" \
+      PATH="%{buildroot}%{_bindir}:$PATH" \
+      PYTHONPATH="${PYTHONPATH:-%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}}" \
+      PYTHONDONTWRITEBYTECODE=1 \
+      %{__python3} %{py_setup} %{?py_setup_args} "${suite}"
+done
 popd
 
 %if %{without system_gtest}
@@ -820,10 +870,6 @@ fi
 %{_libdir}/lib%{name}pp_channelz.so
 %{_includedir}/%{name}pp
 
-%if %{with cmake}
-%{_libdir}/cmake/*.cmake
-%endif
-
 
 %files -n python3-grpcio
 %license LICENSE NOTICE.txt
@@ -869,7 +915,7 @@ fi
 
 
 %changelog
-* Mon Mar 15 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
+* Sun Mar 21 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
   * Replace * with • in descriptions
   * Use cmake() dependencies first, and pkgconfig() dependencies second, where
@@ -877,7 +923,6 @@ fi
   * Drop explicit pkgconfig BR
   * Fix the directory in which CMake installs pkgconfig files
   * Improved CMake options
-  * Fix gflags CMake target name for dynamic linking
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
@@ -894,6 +939,7 @@ fi
     usable!
   * Add %%py_provides for Fedora 32
   * Drop python3dist(setuptools) BR, redundant with %%pyproject_buildrequires
+  * Start running most of the tests in %%check
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
