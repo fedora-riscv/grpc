@@ -120,7 +120,6 @@ export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
 }
 
 BuildRequires:  python3-devel
-BuildRequires:  python3dist(setuptools)
 BuildRequires:  pyproject-rpm-macros
 # Not automatically generated even when we set GRPC_PYTHON_BUILD_WITH_CYTHON:
 BuildRequires:  python3dist(cython)
@@ -894,6 +893,7 @@ fi
     were not
     usable!
   * Add %%py_provides for Fedora 32
+  * Drop python3dist(setuptools) BR, redundant with %%pyproject_buildrequires
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
