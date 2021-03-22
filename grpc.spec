@@ -1,5 +1,6 @@
-# In gtest 1.36, we must link against the system abseil-cpp. We get linker
-# errors here if we are not using C++17.
+# We need to use C++17 to link against the system abseil-cpp, or we get linker
+# errors.
+%global cpp_std 17
 
 # However, gtest in Fedora uses the C++11 ABI, so we get linker errors building
 # the tests if we use C++17. We must therefore bundle a copy of gtest in the
@@ -7,13 +8,12 @@
 # there is no alternative in this case. It is not treated as a bundled library
 # because it is used only at build time, and is not installed.
 %global gtest_version 1.10.0
-%bcond_without system_gtest
+%bcond_with system_gtest
 
-# The CMake build works, except grpc_cli is only built with the tests.
-%bcond_with cmake
-
-# Note that, in this spec file, building the tests requires using CMake.
-%bcond_with core_tests
+# This must be enabled to get grpc_cli, which is apparently considered part of
+# the tests by upstream. This is mentioned in
+# https://github.com/grpc/grpc/issues/23432.
+%bcond_without core_tests
 
 # A few failing Python “test_lite” tests are skipped without understanding.
 # This lets us easily re-enable them to try to work toward a fix or a useful
@@ -28,12 +28,12 @@
 %bcond_with python_gevent_tests
 
 Name:           grpc
-Version:        1.26.0
-Release:        15%{?dist}
+Version:        1.37.1
+Release:        1%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 9
+%global c_so_version 15
 # CMakeLists.txt: gRPC_CPP_SOVERSION
 %global cpp_so_version 1
 # CMakeLists.txt: gRPC_CSHARP_SOVERSION
@@ -62,7 +62,8 @@ Summary:        RPC library and framework
 #   - src/boringssl/crypto_test_data.cc and src/boringssl/err_data.c
 #     * Removed in prep; not used when building with system OpenSSL
 # BSD:
-#   - src/objective-c/*.podspec and templates/src/objective-c/*.podspec.template
+#   - src/objective-c/*.podspec and
+#     templates/src/objective-c/*.podspec.template
 #     * Unused since the Objective-C bindings are not currently built
 # MIT:
 #   - third_party/cares/ares_build.h
@@ -81,44 +82,49 @@ Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 %global gtest_archivename googletest-release-%{gtest_version}
 Source1:        https://github.com/google/googletest/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
 
+# Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
+Source100:      %{name}_cli.1
+Source101:      %{name}_cli-ls.1
+Source102:      %{name}_cli-call.1
+Source103:      %{name}_cli-type.1
+Source104:      %{name}_cli-parse.1
+Source105:      %{name}_cli-totext.1
+Source106:      %{name}_cli-tojson.1
+Source107:      %{name}_cli-tobinary.1
+Source108:      %{name}_cli-help.1
+
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
 BuildRequires:  gcc-c++
-%if %{with cmake}
 BuildRequires:  cmake
 BuildRequires:  ninja-build
-%else
-BuildRequires:  make
-%endif
+%if %{with core_tests}
+# Used on grpc_cli:
 BuildRequires:  chrpath
+%endif
 
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  cmake(gflags)
 BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  protobuf-compiler
-
+BuildRequires:  pkgconfig(re2)
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  cmake(c-ares)
+BuildRequires:  abseil-cpp-devel
+BuildRequires:  pkgconfig(libxxhash)
+# Header-only C library, which we unbundle from the bundled copy of upb
+BuildRequires:  wyhash_final1-devel
+BuildRequires:  wyhash_final1-static
 
 %if %{with core_tests}
 BuildRequires:  cmake(benchmark)
 %if %{with system_gtest}
 BuildRequires:  cmake(gtest)
 BuildRequires:  pkgconfig(gmock)
-BuildRequires:  pkgconfig(libprofiler)
 %endif
 %endif
 
 # ~~~~ Python ~~~~
-
-%global set_grpc_python_environment %{expand:
-export GRPC_PYTHON_BUILD_WITH_CYTHON='True'
-export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL='True'
-export GRPC_PYTHON_BUILD_SYSTEM_ZLIB='True'
-export GRPC_PYTHON_BUILD_SYSTEM_CARES='True'
-export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY='True'
-export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
-}
 
 BuildRequires:  python3-devel
 BuildRequires:  python3dist(setuptools)
@@ -183,6 +189,9 @@ BuildRequires:  python3dist(requests) >= 2.4.12
 # Required for “test_gevent” tests:
 BuildRequires:  python3dist(gevent)
 
+# For stopping the port server
+BuildRequires:  curl
+
 # ~~~~ Miscellaneous ~~~~
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1893533
@@ -201,38 +210,36 @@ BuildRequires:  dos2unix
 # is not suitable for upstream.
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
 Patch0:         %{name}-0001-enforce-system-crypto-policies.patch
-# Make gRPC podspec template more robust
-# https://github.com/grpc/grpc/pull/21445
-Patch3:         99f8a10aec994a8957fbb6787768b444ef34d6a2.patch
-# Remove grpc sources from grpc++
-# https://github.com/grpc/grpc/pull/21662
-Patch4:         72351f63fd650cc7acfcd2d0307e8e8e8f777283.patch
-# Backport upstream commit 9e0b427893b65b220faf8a31a6afdc67f6f41364 “Use !=
-# with literals”
-Patch6:         %{name}-1.26.0-python-SyntaxWarning.patch
 # Build python3-grpcio_tools against system protobuf packages instead of
 # expecting a git submodule. Must also add requisite linker flags using
 # GRPC_PYTHON_LDFLAGS.
-Patch8:         %{name}-1.26.0-python-grpcio_tools-use-system-protobuf.patch
-# In grpcio-tests, require enum34 for install only on those ancient Pythons
-# that require it; we are not using such a Python!
-Patch10:        %{name}-1.26.0-grpcio-tests-conditionalize-enum34.patch
+Patch1:         %{name}-1.37.0-python-grpcio_tools-use-system-protobuf.patch
+# Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
+# option already provided upstream. See
+# https://github.com/grpc/grpc/issues/25559.
+Patch2:         %{name}-1.37.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
-Patch11:        %{name}-1.26.0-python-grpcio_tests-fixture-super.patch
+Patch3:         %{name}-1.36.4-python-grpcio_tests-fixture-super.patch
 # Skip tests requiring non-loopback network access when the
 # FEDORA_NO_NETWORK_TESTS environment variable is set.
-Patch12:        %{name}-1.26.0-grpcio_tests-make-network-tests-skippable.patch
-# Fix link errors in the core tests: the test library grpc_test_util_unsecure
-# does require the “secure” library “grpc”
-Patch13:        %{name}-1.26.0-core-tests-link-errors.patch
+Patch4:         %{name}-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
 # A handful of compression tests miss the compression ratio threshold. It seems
 # to be inconsistent which particular combinations fail in a particular test
 # run. It is not clear that this is a real problem. Any help in understanding
 # the actual cause well enough to fix this or usefully report it upstream is
 # welcome.
-Patch14:        %{name}-1.36.0-python-grpcio_tests-skip-compression-tests.patch
+Patch5:         %{name}-1.36.4-python-grpcio_tests-skip-compression-tests.patch
+# The upstream requirement to link gtest/gmock from grpc_cli is spurious.
+# Remove it. We still have to build the core tests and link a test library
+# (libgrpc++_test_config.so…)
+Patch6:         %{name}-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
+# https://github.com/grpc/grpc/issues/25945
+Patch7:         %{name}-1.37.0-unbundle-xxhash.patch
+# In Python 3.10, “import importlib” does not implicitly import importlib.abc.
+# See https://github.com/grpc/grpc/issues/26062.
+Patch8:         %{name}-1.37.0-importlib-abc-python3.10.patch
 
 Requires:       %{name}-data = %{version}-%{release}
 
@@ -240,7 +247,8 @@ Requires:       %{name}-data = %{version}-%{release}
 # with anything other than Bazel, and Bazel is not likely to make it into
 # Fedora anytime soon due to its nightmarish collection of dependencies.
 # Monitor this at https://bugzilla.redhat.com/show_bug.cgi?id=1470842.
-# Therefore upb cannot be packaged for Fedora, and we must use the bundled copy.
+# Therefore upb cannot be packaged for Fedora, and we must use the bundled
+# copy.
 #
 # Note that upstream has never chosen a version, and it is not clear from which
 # commit the bundled copy was taken or forked.
@@ -266,7 +274,8 @@ connect devices, mobile applications and browsers to backend services.
 
 The main usage scenarios:
 
-  • Efficiently connecting polyglot services in microservices style architecture
+  • Efficiently connecting polyglot services in microservices style
+    architecture
   • Connecting mobile devices, browser clients to backend services
   • Generating efficient client libraries
 
@@ -370,7 +379,24 @@ Summary:        Development files for gRPC library
 # License:        same as base package
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
+
 Requires:       cmake-filesystem
+
+# grpc/impl/codegen/port_platform.h includes linux/version.h
+Requires:       kernel-headers%{?_isa}
+# grpcpp/impl/codegen/config_protobuf.h includes google/protobuf/…
+Requires:       pkgconfig(protobuf)
+# grpcpp/test/mock_stream.h includes gmock/gmock.h
+Requires:       pkgconfig(gmock)
+# grpcpp/impl/codegen/sync.h includes absl/synchronization/mutex.h
+# grpc.pc has -labsl_[…]
+Requires:       abseil-cpp-devel%{?_isa}
+# grpc.pc has -lre2
+Requires:       pkgconfig(re2)
+# grpc.pc has -lcares
+Requires:       cmake(c-ares)
+# grpc.pc has -lz
+Requires:       pkgconfig(zlib)
 
 %description devel
 Development headers and files for gRPC libraries (both C and C++).
@@ -379,9 +405,6 @@ Development headers and files for gRPC libraries (both C and C++).
 %package -n python3-grpcio
 Summary:        Python language bindings for gRPC
 # License:        same as base package
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio
-%endif
 
 # Note that the Python package has no runtime dependency on the base C library;
 # everything it needs is bundled.
@@ -394,9 +417,6 @@ Python language bindings for gRPC (HTTP/2-based RPC framework).
 %package -n python3-grpcio-tools
 Summary:       Package for gRPC Python tools
 # License:        same as base package
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-tools
-%endif
 
 %description -n python3-grpcio-tools
 Package for gRPC Python tools.
@@ -406,9 +426,6 @@ Package for gRPC Python tools.
 Summary:        Channel Level Live Debug Information Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-channelz
-%endif
 
 %description -n python3-grpcio-channelz
 Channelz is a live debug tool in gRPC Python.
@@ -418,9 +435,6 @@ Channelz is a live debug tool in gRPC Python.
 Summary:        Standard Health Checking Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-health-checking
-%endif
 
 %description -n python3-grpcio-health-checking
 Reference package for GRPC Python health checking.
@@ -430,9 +444,6 @@ Reference package for GRPC Python health checking.
 Summary:        Standard Protobuf Reflection Service for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-reflections
-%endif
 
 %description -n python3-grpcio-reflection
 Reference package for reflection in GRPC Python.
@@ -442,9 +453,6 @@ Reference package for reflection in GRPC Python.
 Summary:        Status proto mapping for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-status
-%endif
 
 %description -n python3-grpcio-status
 Reference package for GRPC Python status proto mapping.
@@ -454,9 +462,6 @@ Reference package for GRPC Python status proto mapping.
 Summary:        Testing utilities for gRPC Python
 License:        ASL 2.0
 BuildArch:      noarch
-%if 0%{?fedora} == 32
-%py_provides python3-grpcio-testing
-%endif
 
 %description -n python3-grpcio-testing
 Testing utilities for gRPC Python.
@@ -464,12 +469,6 @@ Testing utilities for gRPC Python.
 
 %prep
 %autosetup -p1
-%if %{without cmake}
-sed -i \
-    -e 's:^prefix ?= .*:prefix ?= %{_prefix}:' \
-    -e 's:$(prefix)/lib:$(prefix)/%{_lib}:' \
-    -e 's:^GTEST_LIB =.*::' Makefile
-%endif
 
 %if %{without system_gtest}
 # Copy in the needed gtest/gmock implementations.
@@ -498,12 +497,14 @@ sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 '\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
 %endif
 
-# Currently, the correct flags for linking against the gflags shared library
-# are silently not found. Since the gflags dependency goes away in a later
-# version of grpc, we just hack in the correct flags rather than taking the
-# time to fix it properly.
-sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
-'\1gflags_shared/' CMakeLists.txt
+# Remove bundled wyhash (via upb); to avoid patching the build system, simply
+# use a symlink to find the system copy. This is sufficient since it is a
+# header-only library.
+rm -rvf third_party/upb/third_party/wyhash
+ln -s %{_includedir}/wyhash_final1/ third_party/upb/third_party/wyhash
+
+# Remove bundled xxhash
+rm -rvf third_party/xxhash
 
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
@@ -558,18 +559,33 @@ dos2unix \
     examples/cpp/helloworld/cmake_externalproject/CMakeLists.txt
 # We leave those under examples/csharp alone.
 
+# We need to adjust the C++ standard to avoid abseil-related linker errors. For
+# the main C++ build, we can use CMAKE_CXX_STANDARD. For extensions, examples,
+# etc., we must patch.
+sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
+    setup.py %{name}.gyp Rakefile \
+    examples/cpp/*/Makefile \
+    examples/cpp/*/CMakeLists.txt \
+    tools/run_tests/artifacts/artifact_targets.py \
+    tools/distrib/python/grpcio_tools/setup.py
+
 # Fix the install path for .pc files
 # https://github.com/grpc/grpc/issues/25635
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 %if %{without unexplained_failing_python_lite_tests}
-%ifarch %{arm32}
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def \
+test_immediately_connectable_channel_connectivity)\\b/\
+\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_channel_connectivity_test.py'
+
+%ifarch %{ix86} %{arm32}
 # TODO figure out how to report this upstream in a useful/actionable way
 sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/testing/_client_test.py'
-%endif
-%ifarch %{ix86} %{arm32}
+
 # These tests fail with:
 #   OverflowError: Python int too large to convert to C ssize_t
 # TODO figure out how to report this upstream in a useful/actionable way
@@ -580,41 +596,47 @@ sed -r -i \
     'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
 %endif
 
-# These will no longer be a problem on grpc 1.36:
-sed -r -i \
-    "s/^([[:blank:]]*)(class SecureServerSecureClient\(.*:)$/\
-\\1@unittest.skip('Unexplained hang')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_cython/cygrpc_test.py'
-sed -r -i \
-    "s/^([[:blank:]]*)(def test_(stream_unary|unary_stream))\\b/\
-\\1@unittest.skip('Unexplained hang')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/beta/_beta_features_test.py'
-sed -r -i \
-    "s/^([[:blank:]]*)(def test(Secure(No|Client)Cert|SessionResumption))\\b/\
-\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_auth_context_test.py'
-%ifnarch %{ix86} %{arm32}
-# (otherwise this was already done above)
-sed -r -i \
-    "s/^([[:blank:]]*)(def testSSLSessionCacheLRU)\\b/\
-\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
+%ifarch s390x
+# Unexplained segmentation fault
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def test_start_xds_server)\\b/\
+\\1@unittest.skip('Unexplained segmentation fault')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_xds_credentials_test.py'
 %endif
-sed -r -i \
-    "s/^([[:blank:]]*)(def test_(stream_stream|unary_unary|stub_context))\\b/\
-\\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/beta/_beta_features_test.py'
+
+%if 0%{?fedora} > 34
+# Python 3.10 failures:
+
+# AssertionError: 'StatusCode.NOT_FOUND' not found in '<_InactiveRpcError of
+# RPC that terminated with:\n\tstatus = NOT_FOUND\n\tdetails = "Failed to get
+# the channel, please ensure your channel_id==10000 is
+# valid"\n\tdebug_error_string =
+# "{"created":"@1619130545.513500675","description":"Error received from peer
+# ipv6:[::1]:35867","file":"src/core/lib/surface/call.cc","file_line":1067,"grpc_message":"Failed
+# to get the channel, please ensure your channel_id==10000 is
+# valid","grpc_status":5}"\n>'
+#
+# AttributeError: 'NoneType' object has no attribute 'IsInitialized'
+sed -r -i "s/^([[:blank:]]*)(def test_invalid_query_get_\
+(channel|server(_sockets)?|socket|subchannel))\\b/\
+\\1@unittest.skip('Unexplained failure')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/channelz/_channelz_servicer_test.py'
+%endif
+
 %endif
 
 
 %build
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
-%if %{with cmake}
 # We could use either make or ninja as the backend; ninja is faster and has no
 # disadvantages (except a small additional BR, given we already need Python)
+#
+# We need to adjust the C++ standard to avoid abseil-related linker errors.
 %cmake \
     -DgRPC_INSTALL:BOOL=ON \
+    -DCMAKE_CXX_STANDARD:STRING=%{cpp_std} \
+    -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON \
     -DgRPC_INSTALL_BINDIR:PATH=%{_bindir} \
     -DgRPC_INSTALL_LIBDIR:PATH=%{_libdir} \
     -DgRPC_INSTALL_INCLUDEDIR:PATH=%{_includedir} \
@@ -626,11 +648,12 @@ sed -r -i \
     -DgRPC_BACKWARDS_COMPATIBILITY_MODE:BOOL=OFF \
     -DgRPC_ZLIB_PROVIDER:STRING='package' \
     -DgRPC_CARES_PROVIDER:STRING='package' \
+    -DgRPC_RE2_PROVIDER:STRING='package' \
     -DgRPC_SSL_PROVIDER:STRING='package' \
     -DgRPC_PROTOBUF_PROVIDER:STRING='package' \
     -DgRPC_PROTOBUF_PACKAGE_TYPE:STRING='MODULE' \
-    -DgRPC_GFLAGS_PROVIDER:STRING='package' \
     -DgRPC_BENCHMARK_PROVIDER:STRING='package' \
+    -DgRPC_ABSL_PROVIDER:STRING='package' \
     -DgRPC_USE_PROTO_LITE:BOOL=OFF \
     -DgRPC_BUILD_GRPC_CPP_PLUGIN:BOOL=ON \
     -DgRPC_BUILD_GRPC_CSHARP_PLUGIN:BOOL=ON \
@@ -641,11 +664,6 @@ sed -r -i \
     -DgRPC_BUILD_GRPC_RUBY_PLUGIN:BOOL=ON \
     -GNinja
 %cmake_build
-%else
-%set_build_flags
-# Default targets are: static shared plugins
-%make_build shared plugins
-%endif
 
 # ~~~~ Python ~~~~
 
@@ -660,7 +678,15 @@ PYTHONPATH="${PYTHONPATH}:${PYROOT}%{python3_sitearch}"
 export PYTHONPATH
 
 # ~~ grpcio ~~
-%set_grpc_python_environment
+# Note that we had to patch in the GRPC_PYTHON_BUILD_SYSTEM_ABSL option.
+export GRPC_PYTHON_BUILD_WITH_CYTHON='True'
+export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL='True'
+export GRPC_PYTHON_BUILD_SYSTEM_ZLIB='True'
+export GRPC_PYTHON_BUILD_SYSTEM_CARES='True'
+export GRPC_PYTHON_BUILD_SYSTEM_RE2='True'
+export GRPC_PYTHON_BUILD_SYSTEM_ABSL='True'
+export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY='True'
+export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
 # We must set GRPC_PYTHON_CFLAGS to avoid unwanted defaults. We take the
 # upstream flags except that we remove -std=c99, which is inapplicable to the
 # C++ parts of the extension.
@@ -727,19 +753,27 @@ rm -vrf doc/build/.buildinfo doc/build/.doctrees
 
 %install
 # ~~~~ C (core) and C++ (cpp) ~~~~
-%if %{with cmake}
 %cmake_install
+
+%if %{with core_tests}
 # For some reason, grpc_cli is not installed. Do it manually.
 install -t '%{buildroot}%{_bindir}' -p -D '%{_vpath_builddir}/%{name}_cli'
 # grpc_cli build does not respect CMAKE_INSTALL_RPATH
 # https://github.com/grpc/grpc/issues/25176
 chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
-%else
-export STRIP=/bin/true
-make install prefix='%{buildroot}%{_prefix}'
-make install-grpc-cli prefix='%{buildroot}%{_prefix}'
-chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
+
+# This library is also required for grpc_cli; it is built as part of the test
+# code.
+install -t '%{buildroot}%{_libdir}' -p \
+    %{_vpath_builddir}/lib%{name}++_test_config.so.*
+chrpath --delete '%{buildroot}%{_libdir}/'lib%{name}++_test_config.so.*
+
+install -d '%{buildroot}/%{_mandir}/man1'
+install -t '%{buildroot}/%{_mandir}/man1' -p -m 0644 \
+    %{SOURCE100} %{SOURCE101} %{SOURCE102} %{SOURCE103} %{SOURCE104} \
+    %{SOURCE106} %{SOURCE107} %{SOURCE108}
 %endif
+
 # Remove any static libraries that may have been installed against our wishes
 find %{buildroot} -type f -name '*.a' -print -delete
 # Fix wrong permissions on installed headers
@@ -808,230 +842,418 @@ cp -rp doc/build '%{buildroot}%{_pkgdocdir}/python/html'
 %check
 export FEDORA_NO_NETWORK_TESTS=1
 
-%if %{with core_tests} && %{with cmake}
+%if %{with core_tests}
+PORT_SERVER_PORT="$(awk '
+  /_PORT_SERVER_PORT[[:blank:]]*=[[:blank:]]*[[:digit:]]+$/ { print $NF }
+' tools/run_tests/python_utils/start_port_server.py)"
+
 # Note that no tests are actually found by ctest:
 %ctest
 
-# Exclude tests that are known to hang. Assistance welcome in figuring out what
-# is wrong with these, especially if the hangs persist in the latest upstream
-# version. Note, however, that we are running the tests very differently from
-# upstream, which uses scripts in tools/run_tests/ that rebuild the entire
-# source and use Docker, so it is likely to be difficult to get help from
-# upstream for any failures here. Note that some of these tests would never
-# work in an environment without Internet access.
+# Exclude tests that are known to hang or otherwise fail. Assistance welcome in
+# figuring out what is wrong with these.  Note, however, that we are running
+# the tests very differently from upstream, which uses scripts in
+# tools/run_tests/ that rebuild the entire source and use Docker, so it is
+# likely to be difficult to get help from upstream for any failures here. Note
+# that some of these tests would never work in an environment without Internet
+# access.
 (
   cat <<'EOF'
-address_sorting
-alarm
-algorithm
+# Requires (or may require) network:
+resolve_address_using_ares_resolver
+resolve_address_using_ares_resolver_posix
+resolve_address_using_native_resolver
+resolve_address_using_native_resolver_posix
+ssl_transport_security
+
+# Seems to require privilege:
+flaky_network
+
+# Bad assumption about which directory the tests are running in:
+#
+# E0413 22:43:56.610039235   19861 subprocess_posix.cc:61]
+#   execv 'x86_64-redhat-linux-gnu/../../test/core/http/python_wrapper.sh'
+#   failed: No such file or directory
+# E0413 22:44:02.613251909   19856 httpscli_test.cc:55]
+#   assertion failed: response->status == 200
+httpcli
+httpscli
+
+# Error shutting down fd, then falsely claims the port server is not running.
+#
+# [ RUN      ] ServerBuilderTest.CreateServerOnePort
+# E0413 22:52:26.853421021   28920 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# E0413 22:52:30.082373319   28920 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# E0413 22:52:33.168560214   28923 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# E0413 22:52:36.905371168   28920 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# E0413 22:52:40.455413890   28923 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# E0413 22:52:44.012408974   28922 ev_epollex_linux.cc:516]
+#   Error shutting down fd 7. errno: 9
+# gRPC tests require a helper port server to allocate ports used
+# during the test.
+#
+# This server is not currently running.
+#
+# To start it, run tools/run_tests/start_port_server.py
+admin_services_end2end
 alts_concurrent_connectivity
-backoff
-badreq_bad_client
-bad_server_response
-bad_ssl_cert
-bad_streaming_id_bad_client
-bdp_estimator
-bin_decoder
-bin_encoder
-buffer_list
-byte_stream
-cancel_ares_query
-channel_create
-channel_trace
+async_end2end
 channelz_service
-channelz
-chttp2_hpack_encoder
-chttp2_settings_timeout
-chttp2_varint
 cli_call
 client_callback_end2end
 client_channel_stress
-client_crash
 client_interceptors_end2end
 client_lb_end2end
-close_fd
-combiner
-compression
-concurrent_connectivity
-connection_prefix_bad_client
-connection_refused
-context_list
-cxx_byte_buffer
-cxx_slice
+context_allocator_end2end
 delegating_channel
-dns_resolver_connectivity
-dns_resolver_cooldown_using_ares_resolver
-dns_resolver_cooldown_using_native_resolver
-dns_resolver
-dualstack_socket
-duplicate_header_bad_client
 end2end
-endpoint_pair
-error
-ev_epollex_linux
-exception
-fake_resolver
-fake_transport_security
-fd_conservation_posix
-fd_posix
 filter_end2end
-fling_stream
-fling
 generic_end2end
-goaway_server
-grpc_b64
-grpc_byte_buffer_reader
-grpc_channel_args
-grpc_channel_stack_builder
-grpc_channel_stack
-grpc_completion_queue
-grpc_completion_queue_threading
-grpc_control_plane_credentials
-grpc_credentials
-grpc_ipv6_loopback_available
-grpc_json_token
-grpc_jwt_verifier
-grpclb_api
-grpclb_end2end
-grpc_security_connector
-grpc_spiffe_security_connector
-grpc_ssl_credentials
 grpc_tool
-h2_census_nosec
-h2_census
-h2_compress_nosec
-h2_compress
-h2_fakesec
-h2_fd_nosec
-h2_fd
-h2_full_nosec
-h2_full+pipe_nosec
-h2_full+pipe
-h2_full
-h2_full+trace_nosec
-h2_full+trace
-h2_full+workarounds_nosec
-h2_full+workarounds
-h2_http_proxy_nosec
-h2_http_proxy
-h2_local_ipv4
-h2_local_ipv6
-h2_local_uds
-h2_oauth2
-h2_proxy_nosec
-h2_proxy
-h2_sockpair_1byte_nosec
-h2_sockpair_1byte
-h2_sockpair_nosec
-h2_sockpair
-h2_sockpair+trace_nosec
-h2_sockpair+trace
-h2_spiffe
-h2_ssl_cert
-h2_ssl_proxy
-h2_ssl_session_reuse
-h2_ssl
-h2_uds_nosec
-h2_uds
-headers_bad_client
-head_of_line_blocking_bad_client
+grpclb_end2end
 health_service_end2end
-hpack_parser
-hpack_table
-httpcli_format_request
-httpcli
-http_parser
-httpscli
 hybrid_end2end
-initial_settings_frame_bad_client
-init
-inproc_callback
-inproc
-interop
-invalid_call_argument
-lame_client
-large_metadata_bad_client
-load_file
-logical_thread
-message_allocator_end2end
-message_compress
-minimal_stack_is_minimal
 mock
-mpmcqueue
-multiple_server_queues
 nonblocking
-no_server
-num_external_connectivity_watchers
-out_of_bounds_bad_client
-parse_address
-parse_address_with_named_scope_id
-percent_encoding
-port_sharing_end2end
 proto_server_reflection
 raw_end2end
-resolver_component
-resource_quota
-secure_channel_create
-secure_endpoint
-sequential_connectivity
-server_builder_plugin
 server_builder
-server_chttp2
-server_crash
-server_early_return
-server_interceptors_end2end
-server_registered_method_bad_client
-server_request_call
-server
+server_builder_plugin
 service_config_end2end
-service_config
 shutdown
-simple_request_bad_client
-slice_buffer
-slice
-sockaddr_resolver
-ssl_transport_security
-stats
-status_conversion
-stream_compression
 streaming_throughput
-stream_owned_slice
-tcp_client_posix
-tcp_posix
-tcp_server_posix
-thread_manager
-threadpool
 thread_stress
-time_change
-timer
-transport_connectivity_state
-transport_metadata
-udp_server
-unknown_frame_bad_client
-uri_parser
-window_overflow_bad_client
-writes_per_rpc
-xds_bootstrap
 xds_end2end
-EOF
-) | sed -r 's|^(.*)$|%{_vpath_builddir}/\1_test|' | xargs chmod a-x
 
-find %{_vpath_builddir} -type f -perm /0111 -name '*_test' |
+# Unexplained:
+#
+# [ RUN      ] EvaluateArgsMetadataTest.HandlesNullMetadata
+# *** SIGSEGV received at time=1618368497 ***
+# PC: @     0x7fc56bfc1d3a  (unknown)  __strlen_sse2
+#     @ ... and at least 1 more frames
+evaluate_args
+# Unexplained:
+#
+# [ RUN      ] ExamineStackTest.AbseilStackProvider
+# ../test/core/gprpp/examine_stack_test.cc:75: Failure
+# Value of: stack_trace->find("GetCurrentStackTrace") != std::string::npos
+#   Actual: false
+# Expected: true
+examine_stack
+# Unexplained:
+#
+# [ RUN      ] StackTracerTest.Basic
+# ../test/core/util/stack_tracer_test.cc:35: Failure
+# Value of: absl::StrContains(stack_trace, "Basic")
+#   Actual: false
+# Expected: true
+# [  FAILED  ] StackTracerTest.Basic (3 ms)
+stack_tracer
+# Unexplained:
+#
+# E0413 22:47:06.188890509   22233 oauth2_credentials.cc:157]
+#   Call to http server ended with error 401
+#   [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,
+#   "token_type":"Bearer"}].
+# *** SIGSEGV received at time=1618368426 ***
+test_core_security_credentials
+
+%ifarch s390x
+# Unexplained:
+#
+# [ RUN      ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable
+# ../test/cpp/naming/address_sorting_test.cc:807: Failure
+# Expected equality of these values:
+#   source_addr_output->sin6_family
+#     Which is: 0
+#   10
+# ../test/cpp/naming/address_sorting_test.cc:817: Failure
+# Expected equality of these values:
+#   source_addr_str
+#     Which is: "::"
+#   "::1"
+# [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (0 ms)
+address_sorting
+
+# Unexplained:
+#
+# Status is not ok: Setting authenticated associated data failed
+# E0422 21:34:46.864696339 3920578 aes_gcm_test.cc:77]         assertion
+#   failed: status == GRPC_STATUS_OK
+# *** SIGABRT received at time=1619127286 ***
+# PC: @      0x3ff83748e0c  (unknown)  raise
+#     @      0x3ff836014c4  (unknown)  (unknown)
+#     @      0x3ff8360168a  (unknown)  (unknown)
+#     @      0x3ff84264b78  (unknown)  (unknown)
+#     @      0x3ff83748e0c  (unknown)  raise
+#     @      0x3ff8372bae8  (unknown)  abort
+#     @      0x2aa3ed83a38  (unknown)  gsec_assert_ok()
+#     @      0x2aa3ed83b70  (unknown)  gsec_test_random_encrypt_decrypt()
+#     @      0x2aa3ed8155e  (unknown)  main
+#     @      0x3ff8372bdf4  (unknown)  __libc_start_main
+#     @      0x2aa3ed82724  (unknown)  (unknown)
+alts_crypt
+
+# Unexplained:
+#
+# (aborted without output)
+alts_crypter
+
+# Unexplained:
+#
+# (aborted without output)
+alts_frame_protector
+
+# Unexplained:
+#
+# E0502 15:06:40.951214061 1640707
+# alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
+#   authenticated associated data failed
+# E0502 15:06:40.951411109 1640707 alts_grpc_record_protocol_test.cc:282]
+#   assertion failed: status == TSI_OK
+# *** SIGABRT received at time=1619968000 ***
+# PC: @      0x3ff939c8e0c  (unknown)  raise
+#     @      0x3ff938814c4  (unknown)  (unknown)
+#     @      0x3ff9388168a  (unknown)  (unknown)
+#     @      0x3ff944e4b78  (unknown)  (unknown)
+#     @      0x3ff939c8e0c  (unknown)  raise
+#     @      0x3ff939abae8  (unknown)  abort
+#     @      0x2aa11482c9e  (unknown)  random_seal_unseal()
+#     @      0x2aa11483558  (unknown)  alts_grpc_record_protocol_tests()
+#     @      0x2aa11481b08  (unknown)  main
+#     @      0x3ff939abdf4  (unknown)  __libc_start_main
+#     @      0x2aa11481bc4  (unknown)  (unknown)
+alts_grpc_record_protocol
+
+# Unexplained:
+#
+# E0505 21:08:10.125639702 2153925 alts_handshaker_client.cc:863]
+#   client or client->vtable has not been initialized properly
+# E0505 21:08:10.125794714 2153925 alts_handshaker_client.cc:579]
+#   Invalid arguments to handshaker_client_start_server()
+# E0505 21:08:10.125877215 2153925 alts_handshaker_client.cc:874]
+#   client or client->vtable has not been initialized properly
+# E0505 21:08:10.125948887 2153925 alts_handshaker_client.cc:615]
+#   Invalid arguments to handshaker_client_next()
+# E0505 21:08:10.126015062 2153925 alts_handshaker_client.cc:885]
+#   client or client->vtable has not been initialized properly
+# E0505 21:08:10.126146291 2153925 alts_handshaker_client_test.cc:177]
+#   assertion failed:
+#   grpc_gcp_StartClientHandshakeReq_handshake_security_protocol( client_start)
+#   == grpc_gcp_ALTS
+# *** SIGABRT received at time=1620248890 ***
+# PC: @      0x3ff98ac8e0c  (unknown)  raise
+#     @      0x3ff989814c4  (unknown)  (unknown)
+#     @      0x3ff9898168a  (unknown)  (unknown)
+#     @      0x3ff99664b78  (unknown)  (unknown)
+#     @      0x3ff98ac8e0c  (unknown)  raise
+#     @      0x3ff98aabae8  (unknown)  abort
+#     @      0x2aa3760375e  (unknown)  check_client_start_success()
+#     @      0x3ff99419a72  (unknown)  continue_make_grpc_call()
+#     @      0x3ff9941ac58  (unknown)  handshaker_client_start_client()
+#     @      0x2aa37603c66  (unknown)  schedule_request_success_test()
+#     @      0x2aa3760281e  (unknown)  main
+#     @      0x3ff98aabdf4  (unknown)  __libc_start_main
+#     @      0x2aa376028b4  (unknown)  (unknown)
+alts_handshaker_client
+
+# Unexplained:
+#
+# (aborted without output)
+alts_iovec_record_protocol
+
+# Unexplained:
+#
+# [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
+# ../test/cpp/common/alts_util_test.cc:122: Failure
+# Expected equality of these values:
+#   expected_sl
+#     Which is: 1
+#   alts_context->security_level()
+#     Which is: 0
+# [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions (0 ms)
+# [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContext
+# [       OK ] AltsUtilTest.AuthContextWithGoodAltsContext (0 ms)
+# [ RUN      ] AltsUtilTest.AltsClientAuthzCheck
+# [       OK ] AltsUtilTest.AltsClientAuthzCheck (0 ms)
+# [----------] 7 tests from AltsUtilTest (0 ms total)
+# [----------] Global test environment tear-down
+# [==========] 7 tests from 1 test suite ran. (0 ms total)
+# [  PASSED  ] 6 tests.
+# [  FAILED  ] 1 test, listed below:
+# [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
+#  1 FAILED TEST
+# E0506 13:27:12.407095885 2895549 alts_util.cc:37]
+#     auth_context is nullptr.
+# E0506 13:27:12.407174329 2895549 alts_util.cc:43]
+#     contains zero or more than one ALTS context.
+# E0506 13:27:12.407191312 2895549 alts_util.cc:43]
+#     contains zero or more than one ALTS context.
+# E0506 13:27:12.407210713 2895549 alts_util.cc:50]
+#     fails to parse ALTS context.
+# E0506 13:27:12.407261763 2895549 alts_util.cc:43]
+#     contains zero or more than one ALTS context.
+alts_util
+
+# Unexplained:
+#
+# E0506 14:42:08.079363072 2916785
+#     alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect,
+#     Setting authenticated associated data failed
+# E0506 14:42:08.079807806 2916785 alts_zero_copy_grpc_protector_test.cc:183]
+#     assertion failed: tsi_zero_copy_grpc_protector_protect( sender,
+#     &var->original_sb, &var->protected_sb) == TSI_OK
+# *** SIGABRT received at time=1620312128 ***
+# PC: @      0x3ffae548e0c  (unknown)  raise
+#     @      0x3ffae4014c4  (unknown)  (unknown)
+#     @      0x3ffae40168a  (unknown)  (unknown)
+#     @      0x3ffaf064b78  (unknown)  (unknown)
+#     @      0x3ffae548e0c  (unknown)  raise
+#     @      0x3ffae52bae8  (unknown)  abort
+#     @      0x2aa11202728  (unknown)  seal_unseal_small_buffer()
+#     @      0x2aa112028d8  (unknown)
+#         alts_zero_copy_protector_seal_unseal_small_buffer_tests()
+#     @      0x2aa112019d6  (unknown)  main
+#     @      0x3ffae52bdf4  (unknown)  __libc_start_main
+#     @      0x2aa11201a84  (unknown)  (unknown)
+alts_zero_copy_grpc_protector
+
+# Unexplained:
+#
+# E0506 16:24:35.085362185 2328244 cq_verifier.cc:228]
+#     no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1
+#     ../test/core/end2end/goaway_server_test.cc:264
+# tag(769) GRPC_OP_COMPLETE success=1
+#     ../test/core/end2end/goaway_server_test.cc:265
+# *** SIGABRT received at time=1620318275 ***
+# PC: @      0x3ffa05c8e0c  (unknown)  raise
+#     @      0x3ffa04814c4  (unknown)  (unknown)
+#     @      0x3ffa048168a  (unknown)  (unknown)
+#     @      0x3ffa11e4b78  (unknown)  (unknown)
+#     @      0x3ffa05c8e0c  (unknown)  raise
+#     @      0x3ffa05abae8  (unknown)  abort
+#     @      0x2aa1e984e96  (unknown)  cq_verify()
+#     @      0x2aa1e9833ce  (unknown)  main
+#     @      0x3ffa05abdf4  (unknown)  __libc_start_main
+#     @      0x2aa1e983ac4  (unknown)  (unknown)
+goaway_server
+
+# Unexplained:
+#
+# *** SIGABRT received at time=1620336694 ***
+# PC: @      0x3ffa3348e0c  (unknown)  raise
+#     @      0x3ffa32014c4  (unknown)  (unknown)
+#     @      0x3ffa320168a  (unknown)  (unknown)
+#     @      0x3ffa39e4b78  (unknown)  (unknown)
+#     @      0x3ffa3348e0c  (unknown)  raise
+#     @      0x3ffa332bae8  (unknown)  abort
+#     @      0x2aa27600c8e  (unknown)  verification_test()
+#     @      0x2aa27600a24  (unknown)  main
+#     @      0x3ffa332bdf4  (unknown)  __libc_start_main
+#     @      0x2aa27600aa4  (unknown)  (unknown)
+murmur_hash
+
+# Unexplained:
+#
+# E0416 16:03:14.051081049   67245 tcp_posix_test.cc:387]
+#     assertion failed: error == GRPC_ERROR_NONE
+# *** SIGABRT received at time=1618588994 ***
+# PC: @       0x4001f5be0c  (unknown)  raise
+#     @       0x40020bf4c4  (unknown)  (unknown)
+#     @       0x40020bf68a  (unknown)  (unknown)
+#     @       0x4002624df0  (unknown)  (unknown)
+#     @       0x4001f5be0c  (unknown)  raise
+#     @       0x4001f3eae8  (unknown)  abort
+#     @       0x4000003f60  (unknown)  timestamps_verifier()
+#     @       0x4001ac36d8  (unknown)  grpc_core::TracedBuffer::Shutdown()
+#     @       0x4001ae53ea  (unknown)  tcp_shutdown_buffer_list()
+#     @       0x4001ae774a  (unknown)  tcp_flush()
+#     @       0x4001ae99f2  (unknown)  tcp_write()
+#     @       0x4000005806  (unknown)  write_test()
+#     @       0x400000622e  (unknown)  run_tests()
+#     @       0x40000028c8  (unknown)  main
+#     @       0x4001f3edf4  (unknown)  __libc_start_main
+#     @       0x40000029f4  (unknown)  (unknown)
+tcp_posix
+%endif
+
+%ifarch %{ix86}
+# Unexplained:
+#
+# [ RUN      ] ChannelTracerTest.TestMultipleEviction
+# ../test/core/channel/channel_trace_test.cc:65: Failure
+# Expected equality of these values:
+#   array.array_value().size()
+#     Which is: 3
+#   expected
+#     Which is: 4
+# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (2 ms)
+channel_trace
+%endif
+
+%ifarch %{ix86} %{arm32}
+# Unexplained:
+#
+# [ RUN      ] CertificateProviderStoreTest.Multithreaded
+# terminate called without an active exception
+# *** SIGABRT received at time=1619103150 ***
+# PC: @ 0xf7fa3559  (unknown)  __kernel_vsyscall
+#     @ ... and at least 1 more frames
+certificate_provider_store
+
+# Unexplained:
+#
+# [ RUN      ] GrpcTlsCertificateDistributorTest.SetKeyMaterialsInCallback
+# terminate called without an active exception
+# *** SIGABRT received at time=1619125567 ***
+# PC: @ 0xb682c114  (unknown)  raise
+#     @ 0xb67e817c  (unknown)  (unknown)
+#     @ 0xb682d6b0  (unknown)  (unknown)
+#     @ 0xb682c114  (unknown)  raise
+grpc_tls_certificate_distributor
+
+# Unexplained:
+#
+# [ RUN      ] GetCpuStatsTest.BusyNoLargerThanTotal
+# ../test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
+# Expected: (busy) <= (total), actual: 9025859384538762329 vs
+#     3751280126112716351
+# [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
+lb_get_cpu_stats
+%endif
+
+EOF
+) |
+  grep -E -v '^(#|$)' |
+  sed -r 's|^(.*)$|%{_vpath_builddir}/\1_test|' |
+  xargs -r chmod -v a-x
+
+find %{_vpath_builddir} -type f -perm /0111 -name '*_test' | sort |
   while read -r testexe
   do
     echo "==== $(date -u --iso-8601=ns): $(basename "${testexe}") ===="
+    %{__python3} tools/run_tests/start_port_server.py
     # We have tried to skip all tests that hang, but since this is a common
     # problem, we use timeout so that a test that does hang breaks the build in
     # a reasonable amount of time.
     timeout -k 11m -v 10m "${testexe}"
   done
+
+# Stop the port server
+curl "http://localhost:${PORT_SERVER_PORT}/quitquitquit" || :
 %endif
 
 pushd src/python/grpcio_tests
 for suite in \
     test_lite \
     %{?with_python_aio_tests:test_aio} \
-    %{?with_python_gevent_tests:test_gevent}
+    %{?with_python_gevent_tests:test_gevent} \
+    test_py3_only
 do
   # See the implementation of the %%pytest macro, upon which our environment
   # setup is based:
@@ -1063,7 +1285,6 @@ fi
 %{_libdir}/libaddress_sorting.so.%{c_so_version}*
 %{_libdir}/libgpr.so.%{c_so_version}*
 %{_libdir}/lib%{name}.so.%{c_so_version}*
-%{_libdir}/lib%{name}_cronet.so.%{c_so_version}*
 %{_libdir}/lib%{name}_unsecure.so.%{c_so_version}*
 %{_libdir}/libupb.so.%{c_so_version}*
 
@@ -1081,18 +1302,28 @@ fi
 
 %files cpp
 %{_libdir}/lib%{name}++.so.%{cpp_so_version}*
+%{_libdir}/lib%{name}++_alts.so.%{cpp_so_version}*
 %{_libdir}/lib%{name}++_error_details.so.%{cpp_so_version}*
 %{_libdir}/lib%{name}++_reflection.so.%{cpp_so_version}*
 %{_libdir}/lib%{name}++_unsecure.so.%{cpp_so_version}*
+%{_libdir}/lib%{name}_plugin_support.so.%{cpp_so_version}*
 
 %{_libdir}/lib%{name}pp_channelz.so.%{cpp_so_version}*
 
 
+%if %{with core_tests}
 %files cli
 %{_bindir}/%{name}_cli
+%{_libdir}/lib%{name}++_test_config.so.%{cpp_so_version}*
+%{_mandir}/man1/%{name}_cli.1*
+%{_mandir}/man1/%{name}_cli-*.1*
+%endif
 
 
 %files plugins
+# These are for program use and do not offer a CLI for the end user, so they
+# should really be in %%{_libexecdir}; however, too many downstream users
+# expect them in $PATH to change this for the time being.
 %{_bindir}/%{name}_*_plugin
 
 
@@ -1100,18 +1331,20 @@ fi
 %{_libdir}/libaddress_sorting.so
 %{_libdir}/libgpr.so
 %{_libdir}/lib%{name}.so
-%{_libdir}/lib%{name}_cronet.so
 %{_libdir}/lib%{name}_unsecure.so
 %{_libdir}/libupb.so
 %{_includedir}/%{name}
 %{_libdir}/pkgconfig/gpr.pc
 %{_libdir}/pkgconfig/%{name}.pc
 %{_libdir}/pkgconfig/%{name}_unsecure.pc
+%{_libdir}/cmake/%{name}
 
 %{_libdir}/lib%{name}++.so
+%{_libdir}/lib%{name}++_alts.so
 %{_libdir}/lib%{name}++_error_details.so
 %{_libdir}/lib%{name}++_reflection.so
 %{_libdir}/lib%{name}++_unsecure.so
+%{_libdir}/lib%{name}_plugin_support.so
 %{_includedir}/%{name}++
 %{_libdir}/pkgconfig/%{name}++.pc
 %{_libdir}/pkgconfig/%{name}++_unsecure.pc
@@ -1157,6 +1390,20 @@ fi
 
 
 %changelog
+* Tue May 11 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-1
+- General:
+  * New version 1.37.1
+  * Drop patches that were upstreamed since the last packaged release, were
+    backported from upstream in the first place, or have otherwise been
+    obsoleted by upstream changes.
+  * Rebase/update remaining patches as needed
+  * Drop Fedora 32 compatibility
+  * Add man pages for grpc_cli
+- C (core) and C++ (cpp):
+  * Switch to CMake build system
+  * Build with C++17 for compatibility with the abseil-cpp package in Fedora
+  * Add various Requires to -devel subpackage
+
 * Tue Apr 06 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-15
 - General:
   * Do not use %%exclude for unpackaged files (RPM 4.17 compatibility)

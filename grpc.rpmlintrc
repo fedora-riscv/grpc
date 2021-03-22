@@ -14,3 +14,13 @@ addFilter(r' no-documentation')
 addFilter(r' crypto-policy-non-compliance-openssl .* SSL_CTX_set_cipher_list')
 # These will not dangle after the ca-certificates dependency is installed:
 addFilter(r' dangling-relative-symlink .*\.pem$')
+# We do not really have a way to work around this. It should be okay in
+# practice. Hopefully the grpc_cli executable will become disentangled from the
+# test libraries upstream and this will go away.
+addFilter(r' shared-lib-without-dependency-information '
+          r'/.*libgrpc.._error_details\.so')
+# There is nothing to document for these; they do not have --help output and
+# are intended for program use.
+addFilter(r' no-manual-page-for-binary grpc_.*_plugin$')
+# There is really no version information available.
+addFilter(r' unversioned-explicit-provides bundled\(upb\)')
