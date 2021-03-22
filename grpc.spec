@@ -536,7 +536,7 @@ sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/testing/_client_test.py'
 %endif
-%if %{__isa_bits} == 32
+%ifarch %{ix86} %{arm32}
 # These tests fail with:
 #   OverflowError: Python int too large to convert to C ssize_t
 # TODO figure out how to report this upstream in a useful/actionable way
@@ -560,7 +560,7 @@ sed -r -i \
     "s/^([[:blank:]]*)(def test(Secure(No|Client)Cert|SessionResumption))\\b/\
 \\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_auth_context_test.py'
-%if %{__isa_bits} != 32
+%ifarch %{ix86} %{arm32}
 # (otherwise this was already done above)
 sed -r -i \
     "s/^([[:blank:]]*)(def testSSLSessionCacheLRU)\\b/\
