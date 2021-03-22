@@ -95,8 +95,6 @@ BuildRequires:  cmake(gflags)
 BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  protobuf-compiler
 
-BuildRequires:  openssl-devel
-BuildRequires:  c-ares-devel
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  cmake(c-ares)
 
