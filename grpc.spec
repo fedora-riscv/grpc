@@ -133,6 +133,9 @@ BuildRequires:  python3dist(gevent)
 # https://bugzilla.redhat.com/show_bug.cgi?id=1893533
 %global _lto_cflags %{nil}
 
+# Reference documentation
+BuildRequires:  doxygen
+
 BuildRequires:  ca-certificates
 # For converting absolute symlinks in the buildroot to relative ones
 BuildRequires:  symlinks
@@ -263,8 +266,33 @@ Summary:        Documentation and examples for gRPC
 License:        ASL 2.0
 BuildArch:      noarch
 
+Obsoletes:      python-grpcio-doc < 1.26.0-13
+Provides:       python-grpcio-doc = %{version}-%{release}
+Provides:       python-grpcio-channelz-doc = %{version}-%{release}
+Provides:       python-grpcio-health-checking-doc = %{version}-%{release}
+Provides:       python-grpcio-reflection-doc = %{version}-%{release}
+Provides:       python-grpcio-status-doc = %{version}-%{release}
+Provides:       python-grpcio-testing-doc = %{version}-%{release}
+
 %description doc
-Documentation and examples for gRPC.
+Documentation and examples for gRPC, including documentation for the following:
+
+  • C (core)
+    ○ API
+    ○ Internals
+  • C++
+    ○ API
+    ○ Internals
+  • Objective C
+    ○ API
+    ○ Internals
+  • Python
+    ○ grpcio
+    ○ grpcio_channelz
+    ○ grpcio_health_checking
+    ○ grpcio_reflection
+    ○ grpcio_status
+    ○ grpcio_testing
 
 
 %package cpp
@@ -401,29 +429,6 @@ BuildArch:      noarch
 
 %description -n python3-grpcio-testing
 Testing utilities for gRPC Python.
-
-
-%package -n python-grpcio-doc
-License:        ASL 2.0
-Summary:        Documentation for Python language bindings for gRPC
-BuildArch:      noarch
-
-Provides:       python-grpcio-channelz-doc = %{version}-%{release}
-Provides:       python-grpcio-health-checking-doc = %{version}-%{release}
-Provides:       python-grpcio-reflection-doc = %{version}-%{release}
-Provides:       python-grpcio-status-doc = %{version}-%{release}
-Provides:       python-grpcio-testing-doc = %{version}-%{release}
-
-%description -n python-grpcio-doc
-Documentation for Python language bindings for gRPC, including the following
-packages:
-
-  • grpcio
-  • grpcio_channelz
-  • grpcio_health_checking
-  • grpcio_reflection
-  • grpcio_status
-  • grpcio_testing
 
 
 %prep
@@ -682,7 +687,11 @@ do
 done
 
 # ~~ documentation ~~
+# Doxygen (reference: C/core, C++, objc)
+./tools/doxygen/run_doxygen.sh
+# Sphinx (Python)
 %{__python3} %{py_setup} %{?py_setup_args} doc
+rm -vrf doc/build/.buildinfo doc/build/.doctrees
 
 
 %install
@@ -758,11 +767,9 @@ find '%{buildroot}' -type f -name 'roots.pem' |
 # ~~ documentation and examples ~~
 
 install -D -t '%{buildroot}%{_pkgdocdir}' -m 0644 -p AUTHORS *.md
-cp -rp doc examples '%{buildroot}%{_pkgdocdir}'
-
-%global pythondocdir %{_docdir}/python-grpcio
-install -d '%{buildroot}%{pythondocdir}'
-cp -rp doc/build '%{buildroot}%{pythondocdir}/html'
+cp -rp doc/ref examples '%{buildroot}%{_pkgdocdir}'
+install -d '%{buildroot}%{_pkgdocdir}/python'
+cp -rp doc/build '%{buildroot}%{_pkgdocdir}/python/html'
 
 
 %check
@@ -824,10 +831,6 @@ fi
 %files doc
 %license LICENSE NOTICE.txt
 %{_pkgdocdir}
-# Built Python documentation:
-%exclude %{_pkgdocdir}/doc/build
-# Python documentation sources:
-%exclude %{_pkgdocdir}/doc/python/sphinx
 
 
 %files cpp
@@ -907,13 +910,6 @@ fi
 %{python3_sitelib}/grpcio_testing-%{version}-py%{python3_version}.egg-info
 
 
-%files -n python-grpcio-doc
-%license LICENSE NOTICE.txt
-%{pythondocdir}
-%exclude %{pythondocdir}/html/.buildinfo
-%exclude %{pythondocdir}/html/.doctrees
-
-
 %changelog
 * Sun Mar 21 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
@@ -923,6 +919,7 @@ fi
   * Drop explicit pkgconfig BR
   * Fix the directory in which CMake installs pkgconfig files
   * Improved CMake options
+  * Build the Doxygen reference manuals
 - C (core) and C++ (cpp):
   * Let the -devel package require cmake-filesystem
   * Allow building tests with our own copy of gtest/gmock, which will become
@@ -939,7 +936,8 @@ fi
     usable!
   * Add %%py_provides for Fedora 32
   * Drop python3dist(setuptools) BR, redundant with %%pyproject_buildrequires
-  * Start running most of the tests in %%check
+  * Start running most of the Python tests in %%check
+  * Merge the python-grpcio-doc subpackage into grpc-doc
 
 * Tue Feb 16 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-12
 - C (core) and C++ (cpp):
