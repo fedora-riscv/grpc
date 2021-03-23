@@ -560,7 +560,7 @@ sed -r -i \
     "s/^([[:blank:]]*)(def test(Secure(No|Client)Cert|SessionResumption))\\b/\
 \\1@unittest.skip('Invalid cert chain file')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_auth_context_test.py'
-%ifarch %{ix86} %{arm32}
+%ifnarch %{ix86} %{arm32}
 # (otherwise this was already done above)
 sed -r -i \
     "s/^([[:blank:]]*)(def testSSLSessionCacheLRU)\\b/\
