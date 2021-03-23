@@ -774,7 +774,222 @@ cp -rp doc/build '%{buildroot}%{_pkgdocdir}/python/html'
 export FEDORA_NO_NETWORK_TESTS=1
 
 %if %{with core_tests} && %{with cmake}
+# Note that no tests are actually found by ctest:
 %ctest
+
+# Exclude tests that are known to hang. Assistance welcome in figuring out what
+# is wrong with these, especially if the hangs persist in the latest upstream
+# version. Note, however, that we are running the tests very differently from
+# upstream, which uses scripts in tools/run_tests/ that rebuild the entire
+# source and use Docker, so it is likely to be difficult to get help from
+# upstream for any failures here. Note that some of these tests would never
+# work in an environment without Internet access.
+(
+  cat <<'EOF'
+address_sorting
+alarm
+algorithm
+alts_concurrent_connectivity
+backoff
+badreq_bad_client
+bad_server_response
+bad_ssl_cert
+bad_streaming_id_bad_client
+bdp_estimator
+bin_decoder
+bin_encoder
+buffer_list
+byte_stream
+cancel_ares_query
+channel_create
+channel_trace
+channelz_service
+channelz
+chttp2_hpack_encoder
+chttp2_settings_timeout
+chttp2_varint
+cli_call
+client_callback_end2end
+client_channel_stress
+client_crash
+client_interceptors_end2end
+client_lb_end2end
+close_fd
+combiner
+compression
+concurrent_connectivity
+connection_prefix_bad_client
+connection_refused
+context_list
+cxx_byte_buffer
+cxx_slice
+delegating_channel
+dns_resolver_connectivity
+dns_resolver_cooldown_using_ares_resolver
+dns_resolver_cooldown_using_native_resolver
+dns_resolver
+dualstack_socket
+duplicate_header_bad_client
+end2end
+endpoint_pair
+error
+ev_epollex_linux
+exception
+fake_resolver
+fake_transport_security
+fd_conservation_posix
+fd_posix
+filter_end2end
+fling_stream
+fling
+generic_end2end
+goaway_server
+grpc_b64
+grpc_byte_buffer_reader
+grpc_channel_args
+grpc_channel_stack_builder
+grpc_channel_stack
+grpc_completion_queue
+grpc_completion_queue_threading
+grpc_control_plane_credentials
+grpc_credentials
+grpc_ipv6_loopback_available
+grpc_json_token
+grpc_jwt_verifier
+grpclb_api
+grpclb_end2end
+grpc_security_connector
+grpc_spiffe_security_connector
+grpc_ssl_credentials
+grpc_tool
+h2_census_nosec
+h2_census
+h2_compress_nosec
+h2_compress
+h2_fakesec
+h2_fd_nosec
+h2_fd
+h2_full_nosec
+h2_full+pipe_nosec
+h2_full+pipe
+h2_full
+h2_full+trace_nosec
+h2_full+trace
+h2_full+workarounds_nosec
+h2_full+workarounds
+h2_http_proxy_nosec
+h2_http_proxy
+h2_local_ipv4
+h2_local_ipv6
+h2_local_uds
+h2_oauth2
+h2_proxy_nosec
+h2_proxy
+h2_sockpair_1byte_nosec
+h2_sockpair_1byte
+h2_sockpair_nosec
+h2_sockpair
+h2_sockpair+trace_nosec
+h2_sockpair+trace
+h2_spiffe
+h2_ssl_cert
+h2_ssl_proxy
+h2_ssl_session_reuse
+h2_ssl
+h2_uds_nosec
+h2_uds
+headers_bad_client
+head_of_line_blocking_bad_client
+health_service_end2end
+hpack_parser
+hpack_table
+httpcli_format_request
+httpcli
+http_parser
+httpscli
+hybrid_end2end
+initial_settings_frame_bad_client
+init
+inproc_callback
+inproc
+interop
+invalid_call_argument
+lame_client
+large_metadata_bad_client
+load_file
+logical_thread
+message_allocator_end2end
+message_compress
+minimal_stack_is_minimal
+mock
+mpmcqueue
+multiple_server_queues
+nonblocking
+no_server
+num_external_connectivity_watchers
+out_of_bounds_bad_client
+parse_address
+parse_address_with_named_scope_id
+percent_encoding
+port_sharing_end2end
+proto_server_reflection
+raw_end2end
+resolver_component
+resource_quota
+secure_channel_create
+secure_endpoint
+sequential_connectivity
+server_builder_plugin
+server_builder
+server_chttp2
+server_crash
+server_early_return
+server_interceptors_end2end
+server_registered_method_bad_client
+server_request_call
+server
+service_config_end2end
+service_config
+shutdown
+simple_request_bad_client
+slice_buffer
+slice
+sockaddr_resolver
+ssl_transport_security
+stats
+status_conversion
+stream_compression
+streaming_throughput
+stream_owned_slice
+tcp_client_posix
+tcp_posix
+tcp_server_posix
+thread_manager
+threadpool
+thread_stress
+time_change
+timer
+transport_connectivity_state
+transport_metadata
+udp_server
+unknown_frame_bad_client
+uri_parser
+window_overflow_bad_client
+writes_per_rpc
+xds_bootstrap
+xds_end2end
+EOF
+) | sed -r 's|^(.*)$|%{_vpath_builddir}/\1_test|' | xargs chmod a-x
+
+find %{_vpath_builddir} -type f -perm /0111 -name '*_test' |
+  while read -r testexe
+  do
+    echo "==== $(date -u --iso-8601=ns): $(basename "${testexe}") ===="
+    # We have tried to skip all tests that hang, but since this is a common
+    # problem, we use timeout so that a test that does hang breaks the build in
+    # a reasonable amount of time.
+    timeout -k 11m -v 10m "${testexe}"
+  done
 %endif
 
 pushd src/python/grpcio_tests
@@ -909,7 +1124,7 @@ fi
 
 
 %changelog
-* Sun Mar 21 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
+* Tue Mar 23 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
   * Replace * with • in descriptions
   * Use cmake() dependencies first, and pkgconfig() dependencies second, where
@@ -925,6 +1140,7 @@ fi
   * Fix a link error in the core tests when using CMake
   * Manually install grpc_cli (CMake)
   * Add CMake files to the files list for the -devel package
+  * Start running some of the core tests in %%check
 - Python:
   * Add several patches required for the tests
   * BR gevent for gevent_tests
