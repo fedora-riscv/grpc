@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.26.0
-Release:        13%{?dist}
+Release:        14%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -77,7 +77,9 @@ URL:            https://www.%{name}.io
 Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 # Used only at build time (not a bundled library); see notes at definition of
 # gtest_version macro for explanation and justification.
-Source1:        https://github.com/google/googletest/archive/release-%{gtest_version}.tar.gz
+%global gtest_url https://github.com/google/googletest
+%global gtest_archivename googletest-release-%{gtest_version}
+Source1:        https://github.com/google/googletest/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
 
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
@@ -442,7 +444,7 @@ sed -i \
 # Copy in the needed gtest/gmock implementations.
 %setup -q -T -D -b 1
 rm -rvf 'third_party/googletest'
-mv '../googletest-release-%{gtest_version}' 'third_party/googletest'
+mv '../%{gtest_archivename}' 'third_party/googletest'
 %else
 # Patch CMakeLists for external gtest/gmock.
 #
@@ -1124,6 +1126,10 @@ fi
 
 
 %changelog
+* Thu Mar 25 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-14
+- General:
+  * Improved googletest source URL (better tarball name)
+
 * Tue Mar 23 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
   * Replace * with • in descriptions
