@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.26.0
-Release:        14%{?dist}
+Release:        15%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -121,12 +121,67 @@ export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
 }
 
 BuildRequires:  python3-devel
-BuildRequires:  pyproject-rpm-macros
-# Not automatically generated even when we set GRPC_PYTHON_BUILD_WITH_CYTHON:
+BuildRequires:  python3dist(setuptools)
+
+# grpcio (setup.py) setup_requires (with
+#     GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD):
+BuildRequires:  python3dist(sphinx)
+
+# grpcio (setup.py) setup_requires (with
+#     GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD):
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(six) >= 1.10
+# grpcio (setup.py) install_requires also has:
+#   six>=1.5.2
+
+# grpcio (setup.py) setup_requires (with GRPC_PYTHON_BUILD_WITH_CYTHON, or
+# absent generated sources); also needed for grpcio_tools
+# (tools/distrib/python/grpcio_tools/setup.py)
 BuildRequires:  python3dist(cython)
+
+# grpcio (setup.py) install_requires:
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+#   futures>=2.2.0; python_version<'3.2'
+
+# grpcio (setup.py) install_requires:
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+#   enum34>=1.0.4; python_version<'3.4'
+
+# grpcio_channelz (src/python/grpcio_channelz/setup.py) install_requires:
+# grpcio_health_checking (src/python/grpcio_health_checking/setup.py)
+#     install_requires:
+# grpcio_reflection (src/python/grpcio_reflection/setup.py) install_requires:
+# grpcio_status (src/python/grpcio_status/setup.py) install_requires:
+# grpcio_testing (src/python/grpcio_testing/setup.py) install_requires:
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(protobuf) >= 3.6.0
+# grpcio_tools (tools/distrib/python/grpcio_tools/setup.py) install_requires
+# also has:
+#   protobuf>=3.5.0.post1
+# which is written as
+#   python3dist(protobuf) >= 3.5^post1
+
+# grpcio_status (src/python/grpcio_status/setup.py) install_requires:
+BuildRequires:  python3dist(googleapis-common-protos) >= 1.5.5
+
+# Several packages have dependencies on grpcio or grpcio_tools—and grpcio-tests
+# depends on all of the other Python packages—which are satisfied within this
+# package.
+
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(coverage) >= 4.0
+
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(oauth2client) >= 1.4.7
+
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(google-auth) >= 1.0.0
+
+# grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
+BuildRequires:  python3dist(requests) >= 2.4.12
+
 # Required for “test_gevent” tests:
 BuildRequires:  python3dist(gevent)
-# Otherwise, we use generated BR’s.
 
 # ~~~~ Miscellaneous ~~~~
 
@@ -159,11 +214,6 @@ Patch6:         %{name}-1.26.0-python-SyntaxWarning.patch
 # expecting a git submodule. Must also add requisite linker flags using
 # GRPC_PYTHON_LDFLAGS.
 Patch8:         %{name}-1.26.0-python-grpcio_tools-use-system-protobuf.patch
-# Allow us to use the setup.py in grpcio-tests (e.g. for generating BR’s)
-# before we have built grpcio-tools; the build_package_protos command is simply
-# not available in this case. Activated by setting environment variable
-# GRPCIO_TESTS_IGNORE_MISSING_TOOLS with any value.
-Patch9:         %{name}-1.26.0-grpcio-tests-setup-without-grpcio-tools.patch
 # In grpcio-tests, require enum34 for install only on those ancient Pythons
 # that require it; we are not using such a Python!
 Patch10:        %{name}-1.26.0-grpcio-tests-conditionalize-enum34.patch
@@ -228,25 +278,6 @@ Core Features that make it awesome:
   • Pluggable auth, tracing, load balancing and health checking
 
 This package provides the shared C core library.
-
-
-%generate_buildrequires
-%set_grpc_python_environment
-%pyproject_buildrequires -r
-# Generate BRs from other Python packages; but use grep to filter out those we
-# are building and installing ourselves.
-(
-  export GRPCIO_TESTS_IGNORE_MISSING_TOOLS=1
-  pushd "tools/distrib/python/grpcio_tools/" >/dev/null
-  %pyproject_buildrequires -r
-  popd >/dev/null
-  for suffix in channelz health_checking reflection status testing tests
-  do
-    pushd "src/python/grpcio_${suffix}/" >/dev/null
-    %pyproject_buildrequires -r
-    popd >/dev/null
-  done
-) | grep -vF 'grpc'
 
 
 %package data
@@ -1126,6 +1157,14 @@ fi
 
 
 %changelog
+* Sat Apr 03 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-15
+- Python:
+  * Stop using %%pyproject_buildrequires, since it is difficult to fit the
+    pyproject-rpm-macros build and install macros into this package, and Miro
+    Hrončok has advised that “mixing %%pyproject_buildrequires with
+    %%py3_build/%%py3_install is generally not a supported way of building
+    Python packages.”
+
 * Thu Mar 25 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-14
 - General:
   * Improved googletest source URL (better tarball name)
