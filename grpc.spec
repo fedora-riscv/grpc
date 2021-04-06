@@ -795,6 +795,8 @@ find '%{buildroot}' -type f -name 'roots.pem' |
     symlinks -c -o "${fn}"
   done
 
+rm -rvf "%{buildroot}$(dirname '%{sysbundle}')"
+
 # ~~ documentation and examples ~~
 
 install -D -t '%{buildroot}%{_pkgdocdir}' -m 0644 -p AUTHORS *.md
@@ -1070,8 +1072,6 @@ fi
 %license LICENSE NOTICE.txt
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/roots.pem
-# Actually part of ca-certificates dependency:
-%exclude %{sysbundle}
 
 
 %files doc
@@ -1157,7 +1157,9 @@ fi
 
 
 %changelog
-* Sat Apr 03 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-15
+* Tue Apr 06 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-15
+- General:
+  * Do not use %%exclude for unpackaged files (RPM 4.17 compatibility)
 - Python:
   * Stop using %%pyproject_buildrequires, since it is difficult to fit the
     pyproject-rpm-macros build and install macros into this package, and Miro
