@@ -1,7 +1,9 @@
 # These are not real spelling errors...
-addFilter(r' spelling-error .*[ \(]en_US\)? (microservices|auth|gRPC|channelz|proto(buf)?|unary|rpc) ')
+addFilter(r' spelling-error .*[ \(]en_US\)? (microservices|auth|gRPC|'
+          r'channelz|proto(buf)?|unary|rpc)|grpcio ')
 # Maybe some of these are supposed to be CRNL-terminated:
-addFilter(r' wrong-file-end-of-line-encoding /usr/share/doc/grpc/examples/csharp/')
+addFilter(r' wrong-file-end-of-line-encoding '
+          r'/usr/share/doc/grpc/examples/csharp/')
 # We generally follow upstream package metadata for these:
 addFilter(r' description-shorter-than-summary')
 # Many subpackages do not have their own documentation!
