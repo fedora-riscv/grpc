@@ -29,15 +29,17 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
 %global c_so_version 15
 # CMakeLists.txt: gRPC_CPP_SOVERSION
-%global cpp_so_version 1
+%global cpp_so_version 1.37
 # CMakeLists.txt: gRPC_CSHARP_SOVERSION
-%global csharp_so_version 2
+%global csharp_so_version 2.37
+# See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
+# regarding unusual SOVERSION style (not a single number).
 
 # The entire source is ASL 2.0 except the following:
 #
@@ -1390,6 +1392,9 @@ fi
 
 
 %changelog
+* Fri May 21 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-2
+- Use full gRPC_{CPP,CSHARP}_SOVERSION in file globs
+
 * Tue May 11 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-1
 - General:
   * New version 1.37.1
