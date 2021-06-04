@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -1392,6 +1392,9 @@ fi
 
 
 %changelog
+* Fri Jun 04 2021 Python Maint <python-maint@redhat.com> - 1.37.1-3
+- Rebuilt for Python 3.10
+
 * Fri May 21 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-2
 - Use full gRPC_{CPP,CSHARP}_SOVERSION in file globs
 
