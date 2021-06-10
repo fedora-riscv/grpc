@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -615,7 +615,7 @@ sed -r -i "s/^([[:blank:]]*)(def test_start_xds_server)\\b/\
     'src/python/grpcio_tests/tests/unit/_xds_credentials_test.py'
 %endif
 
-%if 0%{?fedora} > 34
+%if 0%{?fedora} > 34 || 0%{?rhel} > 8
 # Python 3.10 failures:
 
 # AssertionError: 'StatusCode.NOT_FOUND' not found in '<_InactiveRpcError of
@@ -1401,6 +1401,9 @@ fi
 
 
 %changelog
+* Thu Jun 10 2021 Stephen Gallagher <sgallagh@redhat.com> - 1.37.1-5
+- Fix builds against Python 3.10 on ELN/RHEL as well
+
 * Thu Jun 10 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-4
 - Since it turns out xxhash is used as a header-only library, we can stop
   patching the source to unbundle it; removing the bundled copy suffices
