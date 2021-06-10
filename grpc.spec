@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -1401,6 +1401,9 @@ fi
 
 
 %changelog
+* Thu Jun 10 2021 Rich Mattes <richmattes@gmail.com> - 1.37.1-6
+- Rebuild for abseil-cpp-20210324.2
+
 * Thu Jun 10 2021 Stephen Gallagher <sgallagh@redhat.com> - 1.37.1-5
 - Fix builds against Python 3.10 on ELN/RHEL as well
 
