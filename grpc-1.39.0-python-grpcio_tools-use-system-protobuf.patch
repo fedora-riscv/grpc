@@ -1,6 +1,6 @@
-diff -Naur grpc-1.37.0-original/tools/distrib/python/grpcio_tools/protoc_lib_deps.py grpc-1.37.0/tools/distrib/python/grpcio_tools/protoc_lib_deps.py
---- grpc-1.37.0-original/tools/distrib/python/grpcio_tools/protoc_lib_deps.py	2021-04-06 18:48:56.000000000 -0400
-+++ grpc-1.37.0/tools/distrib/python/grpcio_tools/protoc_lib_deps.py	2021-04-08 15:30:28.142459012 -0400
+diff -Naur grpc-1.39.0-original/tools/distrib/python/grpcio_tools/protoc_lib_deps.py grpc-1.39.0/tools/distrib/python/grpcio_tools/protoc_lib_deps.py
+--- grpc-1.39.0-original/tools/distrib/python/grpcio_tools/protoc_lib_deps.py	2021-07-20 18:39:39.000000000 -0400
++++ grpc-1.39.0/tools/distrib/python/grpcio_tools/protoc_lib_deps.py	2021-07-23 14:46:07.887714469 -0400
 @@ -14,10 +14,9 @@
  # limitations under the License.
  
@@ -13,6 +13,6 @@ diff -Naur grpc-1.37.0-original/tools/distrib/python/grpcio_tools/protoc_lib_dep
 -CC_INCLUDE='third_party/protobuf/src'
 -PROTO_INCLUDE='third_party/protobuf/src'
 -
--PROTOBUF_SUBMODULE_VERSION="d7e943b8d2bc444a8c770644e73d090b486f8b37"
+-PROTOBUF_SUBMODULE_VERSION="436bd7880e458532901c58f4d9d1ea23fa7edd52"
 +CC_INCLUDE='/usr/include'
 +PROTO_INCLUDE='/usr/include'

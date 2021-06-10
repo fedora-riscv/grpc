@@ -1,0 +1,69 @@
+diff -Naur --no-dereference grpc-1.39.0-original/test/core/http/test_server.py grpc-1.39.0/test/core/http/test_server.py
+--- grpc-1.39.0-original/test/core/http/test_server.py	2021-07-20 18:39:39.000000000 -0400
++++ grpc-1.39.0/test/core/http/test_server.py	2021-08-02 15:53:10.756821227 -0400
+@@ -15,7 +15,7 @@
+ """Server for httpcli_test"""
+ 
+ import argparse
+-import BaseHTTPServer
++import http.server
+ import os
+ import ssl
+ import sys
+@@ -26,7 +26,7 @@
+ _KEY = os.path.abspath(
+     os.path.join(os.path.dirname(sys.argv[0]), '../../..',
+                  'src/core/tsi/test_creds/server1.key'))
+-print _PEM
++print(_PEM)
+ open(_PEM).close()
+ 
+ argp = argparse.ArgumentParser(description='Server for httpcli_test')
+@@ -34,29 +34,29 @@
+ argp.add_argument('-s', '--ssl', default=False, action='store_true')
+ args = argp.parse_args()
+ 
+-print 'server running on port %d' % args.port
++print('server running on port %d' % args.port)
+ 
+ 
+-class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
++class Handler(http.server.BaseHTTPRequestHandler):
+ 
+     def good(self):
+         self.send_response(200)
+         self.send_header('Content-Type', 'text/html')
+         self.end_headers()
+-        self.wfile.write('<html><head><title>Hello world!</title></head>')
+-        self.wfile.write('<body><p>This is a test</p></body></html>')
++        self.wfile.write(b'<html><head><title>Hello world!</title></head>')
++        self.wfile.write(b'<body><p>This is a test</p></body></html>')
+ 
+     def do_GET(self):
+         if self.path == '/get':
+             self.good()
+ 
+     def do_POST(self):
+-        content = self.rfile.read(int(self.headers.getheader('content-length')))
++        content = self.rfile.read(int(self.headers.get('content-length')))
+         if self.path == '/post' and content == 'hello':
+             self.good()
+ 
+ 
+-httpd = BaseHTTPServer.HTTPServer(('localhost', args.port), Handler)
++httpd = http.server.HTTPServer(('localhost', args.port), Handler)
+ if args.ssl:
+     httpd.socket = ssl.wrap_socket(httpd.socket,
+                                    certfile=_PEM,
+diff -Naur --no-dereference grpc-1.39.0-original/tools/distrib/python_wrapper.sh grpc-1.39.0/tools/distrib/python_wrapper.sh
+--- grpc-1.39.0-original/tools/distrib/python_wrapper.sh	2021-07-20 18:39:39.000000000 -0400
++++ grpc-1.39.0/tools/distrib/python_wrapper.sh	2021-08-02 13:04:51.034495917 -0400
+@@ -14,7 +14,7 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-for p in python2.7 python2.6 python2 python not_found ; do 
++for p in python3 not_found ; do 
+ 
+   python=$(which $p || echo not_found)
+ 

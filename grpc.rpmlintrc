@@ -1,6 +1,7 @@
 # These are not real spelling errors...
 addFilter(r' spelling-error .*[ \(]en_US\)? (microservices|auth|gRPC|'
-          r'channelz|proto(buf)?|unary|rpc)|grpcio ')
+          r'channelz|proto(buf)?|unary|rpc|grpcio|csds|localhost|'
+          r'grpc(debug)?|servicers|[Dx]DS|programatically) ')
 # Maybe some of these are supposed to be CRNL-terminated:
 addFilter(r' wrong-file-end-of-line-encoding '
           r'/usr/share/doc/grpc/examples/csharp/')
@@ -24,3 +25,8 @@ addFilter(r' shared-lib-without-dependency-information '
 addFilter(r' no-manual-page-for-binary grpc_.*_plugin$')
 # There is really no version information available.
 addFilter(r' unversioned-explicit-provides bundled\(upb\)')
+# We use rpmautospec, which rpmlint may not yet understand
+addFilter(r' Possible unexpanded macro in: .*%autorelease$')
+addFilter(r' %changelog entries must start with \*$')
+# This really does make sense:
+addFilter(r' summary-not-capitalized .*xDS$')
