@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -114,6 +114,12 @@ BuildRequires:  pkgconfig(openssl)
 BuildRequires:  cmake(c-ares)
 BuildRequires:  abseil-cpp-devel
 BuildRequires:  pkgconfig(libxxhash)
+# Sets XXH_INCLUDE_ALL, which means xxhash is used as a header-only library
+%if 0%{?fedora} > 34
+# Uncomment if https://src.fedoraproject.org/rpms/xxhash/pull-request/1 is
+# merged.
+# BuildRequires:  xxhash-static
+%endif
 # Header-only C library, which we unbundle from the bundled copy of upb
 BuildRequires:  wyhash_final1-devel
 BuildRequires:  wyhash_final1-static
@@ -237,11 +243,9 @@ Patch5:         %{name}-1.36.4-python-grpcio_tests-skip-compression-tests.patch
 # Remove it. We still have to build the core tests and link a test library
 # (libgrpc++_test_config.so…)
 Patch6:         %{name}-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
-# https://github.com/grpc/grpc/issues/25945
-Patch7:         %{name}-1.37.0-unbundle-xxhash.patch
 # In Python 3.10, “import importlib” does not implicitly import importlib.abc.
 # See https://github.com/grpc/grpc/issues/26062.
-Patch8:         %{name}-1.37.0-importlib-abc-python3.10.patch
+Patch7:         %{name}-1.37.0-importlib-abc-python3.10.patch
 
 Requires:       %{name}-data = %{version}-%{release}
 
@@ -507,6 +511,11 @@ ln -s %{_includedir}/wyhash_final1/ third_party/upb/third_party/wyhash
 
 # Remove bundled xxhash
 rm -rvf third_party/xxhash
+# Since grpc sets XXH_INCLUDE_ALL wherever it uses xxhash, it is using xxhash
+# as a header-only library. This means we can replace it with the system copy
+# by doing nothing further; xxhash.h is in the system include path and will be
+# found instead, and there are no linker flags to add. See also
+# https://github.com/grpc/grpc/issues/25945.
 
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
@@ -1392,6 +1401,10 @@ fi
 
 
 %changelog
+* Thu Jun 10 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-4
+- Since it turns out xxhash is used as a header-only library, we can stop
+  patching the source to unbundle it; removing the bundled copy suffices
+
 * Fri Jun 04 2021 Python Maint <python-maint@redhat.com> - 1.37.1-3
 - Rebuilt for Python 3.10
 
