@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -113,13 +113,9 @@ BuildRequires:  pkgconfig(re2)
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  cmake(c-ares)
 BuildRequires:  abseil-cpp-devel
-BuildRequires:  pkgconfig(libxxhash)
 # Sets XXH_INCLUDE_ALL, which means xxhash is used as a header-only library
-%if 0%{?fedora} > 34
-# Uncomment if https://src.fedoraproject.org/rpms/xxhash/pull-request/1 is
-# merged.
-# BuildRequires:  xxhash-static
-%endif
+BuildRequires:  pkgconfig(libxxhash)
+BuildRequires:  xxhash-static
 # Header-only C library, which we unbundle from the bundled copy of upb
 BuildRequires:  wyhash_final1-devel
 BuildRequires:  wyhash_final1-static
@@ -1401,6 +1397,9 @@ fi
 
 
 %changelog
+* Mon Jun 14 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-7
+- Add BR on xxhash-static since we use it as a header-only library
+
 * Thu Jun 10 2021 Rich Mattes <richmattes@gmail.com> - 1.37.1-6
 - Rebuild for abseil-cpp-20210324.2
 
