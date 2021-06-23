@@ -864,8 +864,8 @@ PORT_SERVER_PORT="$(awk '
 # likely to be difficult to get help from upstream for any failures here. Note
 # that some of these tests would never work in an environment without Internet
 # access.
-(
-  cat <<'EOF'
+{ sed -r -e '/^(#|$)/d' -e 's|^(.*)$|%{_vpath_builddir}/\1_test|' <<'EOF'
+
 # Requires (or may require) network:
 resolve_address_using_ares_resolver
 resolve_address_using_ares_resolver_posix
@@ -1235,10 +1235,7 @@ lb_get_cpu_stats
 %endif
 
 EOF
-) |
-  grep -E -v '^(#|$)' |
-  sed -r 's|^(.*)$|%{_vpath_builddir}/\1_test|' |
-  xargs -r chmod -v a-x
+} | xargs -r chmod -v a-x
 
 find %{_vpath_builddir} -type f -perm /0111 -name '*_test' | sort |
   while read -r testexe
