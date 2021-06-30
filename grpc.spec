@@ -7,7 +7,7 @@
 # source RPM rather than using the system copy. This is to be discouraged, but
 # there is no alternative in this case. It is not treated as a bundled library
 # because it is used only at build time, and is not installed.
-%global gtest_version 1.10.0
+%global gtest_version 1.11.0
 %bcond_with system_gtest
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
@@ -29,7 +29,7 @@
 
 Name:           grpc
 Version:        1.37.1
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -1397,6 +1397,9 @@ fi
 
 
 %changelog
+* Fri Jul  9 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-8
+- Use googletest 1.11.0
+
 * Mon Jun 14 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.37.1-7
 - Add BR on xxhash-static since we use it as a header-only library
 
