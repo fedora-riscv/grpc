@@ -700,7 +700,9 @@ sed -r -i "s/^([[:blank:]]*)(def test_deallocated_server_stops)\\b/\
 sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/testing/_client_test.py'
+%endif
 
+%ifarch %{ix86} %{arm32}
 # Confirmed in 1.39.0 2021-07-29
 # These tests fail with:
 #   OverflowError: Python int too large to convert to C ssize_t
@@ -710,6 +712,14 @@ sed -r -i \
 \\1@unittest.skip('Unexplained overflow error on 32-bit')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_auth_context_test.py' \
     'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
+%endif
+
+%ifarch %{arm64}
+# Confirmed in 1.39.0 2021-08-06
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def testConcurrentFutureInvocations)\\b/\
+\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
 %endif
 
 %endif
@@ -1048,47 +1058,6 @@ streaming_throughput
 thread_stress
 xds_end2end
 
-# Unexplained:
-#
-# [ RUN      ] EvaluateArgsMetadataTest.HandlesNullMetadata
-# *** SIGSEGV received at time=1618368497 ***
-# PC: @     0x7fc56bfc1d3a  (unknown)  __strlen_sse2
-#     @ ... and at least 1 more frames
-#
-# CHECKME
-evaluate_args
-# Unexplained:
-#
-# [ RUN      ] ExamineStackTest.AbseilStackProvider
-# ../test/core/gprpp/examine_stack_test.cc:75: Failure
-# Value of: stack_trace->find("GetCurrentStackTrace") != std::string::npos
-#   Actual: false
-# Expected: true
-#
-# CHECKME
-examine_stack
-# Unexplained:
-#
-# [ RUN      ] StackTracerTest.Basic
-# ../test/core/util/stack_tracer_test.cc:35: Failure
-# Value of: absl::StrContains(stack_trace, "Basic")
-#   Actual: false
-# Expected: true
-# [  FAILED  ] StackTracerTest.Basic (3 ms)
-#
-# CHECKME
-stack_tracer
-# Unexplained:
-#
-# E0413 22:47:06.188890509   22233 oauth2_credentials.cc:157]
-#   Call to http server ended with error 401
-#   [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,
-#   "token_type":"Bearer"}].
-# *** SIGSEGV received at time=1618368426 ***
-#
-# CHECKME
-test_core_security_credentials
-
 %ifarch s390x
 # Unexplained:
 #
@@ -1105,44 +1074,53 @@ test_core_security_credentials
 #   "::1"
 # [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (0 ms)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-05
 address_sorting
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # Status is not ok: Setting authenticated associated data failed
-# E0422 21:34:46.864696339 3920578 aes_gcm_test.cc:77]         assertion
-#   failed: status == GRPC_STATUS_OK
-# *** SIGABRT received at time=1619127286 ***
-# PC: @      0x3ff83748e0c  (unknown)  raise
-#     @      0x3ff836014c4  (unknown)  (unknown)
-#     @      0x3ff8360168a  (unknown)  (unknown)
-#     @      0x3ff84264b78  (unknown)  (unknown)
-#     @      0x3ff83748e0c  (unknown)  raise
-#     @      0x3ff8372bae8  (unknown)  abort
-#     @      0x2aa3ed83a38  (unknown)  gsec_assert_ok()
-#     @      0x2aa3ed83b70  (unknown)  gsec_test_random_encrypt_decrypt()
-#     @      0x2aa3ed8155e  (unknown)  main
-#     @      0x3ff8372bdf4  (unknown)  __libc_start_main
-#     @      0x2aa3ed82724  (unknown)  (unknown)
+# E0805 21:01:40.415152384 1888289 aes_gcm_test.cc:77]         assertion failed: status == GRPC_STATUS_OK
+# *** SIGABRT received at time=1628197300 on cpu 1 ***
+# PC: @      0x3ff8581ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff85701524  (unknown)  (unknown)
+#     @      0x3ff85701790  (unknown)  (unknown)
+#     @      0x3ff862e3b78  (unknown)  (unknown)
+#     @      0x3ff8581ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff857d03e0  (unknown)  gsignal
+#     @      0x3ff857b3480  (unknown)  abort
+#     @      0x2aa27303a48  (unknown)  gsec_assert_ok()
+#     @      0x2aa27303b80  (unknown)  gsec_test_random_encrypt_decrypt()
+#     @      0x2aa2730156e  (unknown)  main
+#     @      0x3ff857b3732  (unknown)  __libc_start_call_main
+#     @      0x3ff857b380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa27302730  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-05
 alts_crypt
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # (aborted without output)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-05
 alts_crypter
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # (aborted without output)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-05
 alts_frame_protector
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # E0502 15:06:40.951214061 1640707
@@ -1165,7 +1143,9 @@ alts_frame_protector
 #
 # CHECKME
 alts_grpc_record_protocol
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # E0505 21:08:10.125639702 2153925 alts_handshaker_client.cc:863]
@@ -1199,14 +1179,18 @@ alts_grpc_record_protocol
 #
 # CHECKME
 alts_handshaker_client
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # (aborted without output)
 #
 # CHECKME
 alts_iovec_record_protocol
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
@@ -1241,7 +1225,9 @@ alts_iovec_record_protocol
 #
 # CHECKME
 alts_util
+%endif
 
+%ifarch s390x
 # Unexplained:
 #
 # E0506 14:42:08.079363072 2916785
@@ -1266,7 +1252,73 @@ alts_util
 #
 # CHECKME
 alts_zero_copy_grpc_protector
+%endif
 
+%ifarch %{ix86} %{arm32}
+# Unexplained:
+#
+# [ RUN      ] CertificateProviderStoreTest.Multithreaded
+# terminate called without an active exception
+# *** SIGABRT received at time=1619103150 ***
+# PC: @ 0xf7fa3559  (unknown)  __kernel_vsyscall
+#     @ ... and at least 1 more frames
+#
+# CHECKME
+certificate_provider_store
+%endif
+
+%ifarch %{ix86}
+# Unexplained:
+#
+# [ RUN      ] ChannelTracerTest.TestMultipleEviction
+# ../test/core/channel/channel_trace_test.cc:65: Failure
+# Expected equality of these values:
+#   array.array_value().size()
+#     Which is: 3
+#   expected
+#     Which is: 4
+# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (2 ms)
+#
+# CHECKME
+channel_trace
+%endif
+
+# Unexplained:
+#
+# [ RUN      ] EvaluateArgsTest.EmptyMetadata
+# *** SIGSEGV received at time=1628108665 on cpu 143 ***
+# PC: @     0xffffac12f3d0  (unknown)  __strlen_asimd
+#     @     0xffffac06f810  1142966656  (unknown)
+#     @     0xffffaca217ec         64  (unknown)
+#     @     0xaaaadf5806dc        624  grpc_core::EvaluateArgsTest_EmptyMetadata_Test::TestBody()
+#     @     0xaaaadf5c1b78         96  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @     0xaaaadf5b48d8         32  testing::Test::Run()
+#     @     0xaaaadf5b4ad4         64  testing::TestInfo::Run()
+#     @     0xaaaadf5b5424         80  testing::TestSuite::Run()
+#     @     0xaaaadf5b5f08        240  testing::internal::UnitTestImpl::RunAllTests()
+#     @     0xaaaadf5b4ca0        144  testing::UnitTest::Run()
+#     @     0xaaaadf57c2d8         64  main
+#     @     0xffffac0ba0c4        272  __libc_start_call_main
+#     @     0xffffac0ba198  (unknown)  __libc_start_main@GLIBC_2.17
+#
+# Confirmed in 1.39.0 2021-08-04
+evaluate_args
+
+%ifarch x86_64 %{ix86}
+# Unexplained:
+#
+# [ RUN      ] ExamineStackTest.AbseilStackProvider
+# /builddir/build/BUILD/grpc-1.39.0/test/core/gprpp/examine_stack_test.cc:75: Failure
+# Value of: stack_trace->find("GetCurrentStackTrace") != std::string::npos
+#   Actual: false
+# Expected: true
+# [  FAILED  ] ExamineStackTest.AbseilStackProvider (0 ms)
+#
+# Confirmed in 1.39.0 2021-08-05
+examine_stack
+%endif
+
+%ifarch s390x
 # Unexplained:
 #
 # E0506 16:24:35.085362185 2328244 cq_verifier.cc:228]
@@ -1288,7 +1340,37 @@ alts_zero_copy_grpc_protector
 #
 # CHECKME
 goaway_server
+%endif
 
+%ifarch %{ix86} %{arm32}
+# Unexplained:
+#
+# [ RUN      ] GrpcTlsCertificateDistributorTest.SetKeyMaterialsInCallback
+# terminate called without an active exception
+# *** SIGABRT received at time=1619125567 ***
+# PC: @ 0xb682c114  (unknown)  raise
+#     @ 0xb67e817c  (unknown)  (unknown)
+#     @ 0xb682d6b0  (unknown)  (unknown)
+#     @ 0xb682c114  (unknown)  raise
+#
+# CHECKME
+grpc_tls_certificate_distributor
+%endif
+
+%ifarch %{ix86} %{arm32}
+# Unexplained:
+#
+# [ RUN      ] GetCpuStatsTest.BusyNoLargerThanTotal
+# ../test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
+# Expected: (busy) <= (total), actual: 9025859384538762329 vs
+#     3751280126112716351
+# [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
+#
+# CHECKME
+lb_get_cpu_stats
+%endif
+
+%ifarch s390x
 # Unexplained:
 #
 # *** SIGABRT received at time=1620336694 ***
@@ -1305,31 +1387,20 @@ goaway_server
 #
 # CHECKME
 murmur_hash
+%endif
 
+%ifarch x86_64 %{ix86}
 # Unexplained:
 #
-# E0416 16:03:14.051081049   67245 tcp_posix_test.cc:387]
-#     assertion failed: error == GRPC_ERROR_NONE
-# *** SIGABRT received at time=1618588994 ***
-# PC: @       0x4001f5be0c  (unknown)  raise
-#     @       0x40020bf4c4  (unknown)  (unknown)
-#     @       0x40020bf68a  (unknown)  (unknown)
-#     @       0x4002624df0  (unknown)  (unknown)
-#     @       0x4001f5be0c  (unknown)  raise
-#     @       0x4001f3eae8  (unknown)  abort
-#     @       0x4000003f60  (unknown)  timestamps_verifier()
-#     @       0x4001ac36d8  (unknown)  grpc_core::TracedBuffer::Shutdown()
-#     @       0x4001ae53ea  (unknown)  tcp_shutdown_buffer_list()
-#     @       0x4001ae774a  (unknown)  tcp_flush()
-#     @       0x4001ae99f2  (unknown)  tcp_write()
-#     @       0x4000005806  (unknown)  write_test()
-#     @       0x400000622e  (unknown)  run_tests()
-#     @       0x40000028c8  (unknown)  main
-#     @       0x4001f3edf4  (unknown)  __libc_start_main
-#     @       0x40000029f4  (unknown)  (unknown)
+# [ RUN      ] StackTracerTest.Basic
+# /builddir/build/BUILD/grpc-1.39.0/test/core/util/stack_tracer_test.cc:35: Failure
+# Value of: absl::StrContains(stack_trace, "Basic")
+#   Actual: false
+# Expected: true
+# [  FAILED  ] StackTracerTest.Basic (1 ms)
 #
-# CHECKME
-tcp_posix
+# Confirmed in 1.39.0 2021-08-05
+stack_tracer
 %endif
 
 %ifarch x86_64 %{ix86} %{arm64}
@@ -1359,58 +1430,48 @@ tcp_posix
 sync
 %endif
 
-%ifarch %{ix86}
+%ifarch s390x
 # Unexplained:
 #
-# [ RUN      ] ChannelTracerTest.TestMultipleEviction
-# ../test/core/channel/channel_trace_test.cc:65: Failure
-# Expected equality of these values:
-#   array.array_value().size()
-#     Which is: 3
-#   expected
-#     Which is: 4
-# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (2 ms)
+# E0416 16:03:14.051081049   67245 tcp_posix_test.cc:387]
+#     assertion failed: error == GRPC_ERROR_NONE
+# *** SIGABRT received at time=1618588994 ***
+# PC: @       0x4001f5be0c  (unknown)  raise
+#     @       0x40020bf4c4  (unknown)  (unknown)
+#     @       0x40020bf68a  (unknown)  (unknown)
+#     @       0x4002624df0  (unknown)  (unknown)
+#     @       0x4001f5be0c  (unknown)  raise
+#     @       0x4001f3eae8  (unknown)  abort
+#     @       0x4000003f60  (unknown)  timestamps_verifier()
+#     @       0x4001ac36d8  (unknown)  grpc_core::TracedBuffer::Shutdown()
+#     @       0x4001ae53ea  (unknown)  tcp_shutdown_buffer_list()
+#     @       0x4001ae774a  (unknown)  tcp_flush()
+#     @       0x4001ae99f2  (unknown)  tcp_write()
+#     @       0x4000005806  (unknown)  write_test()
+#     @       0x400000622e  (unknown)  run_tests()
+#     @       0x40000028c8  (unknown)  main
+#     @       0x4001f3edf4  (unknown)  __libc_start_main
+#     @       0x40000029f4  (unknown)  (unknown)
 #
 # CHECKME
-channel_trace
+tcp_posix
 %endif
 
-%ifarch %{ix86} %{arm32}
 # Unexplained:
 #
-# [ RUN      ] CertificateProviderStoreTest.Multithreaded
-# terminate called without an active exception
-# *** SIGABRT received at time=1619103150 ***
-# PC: @ 0xf7fa3559  (unknown)  __kernel_vsyscall
+# This may be flaky and sometimes succeed; this is known to be the case on
+# ppc64le.
+#
+# E0805 15:49:03.066330569 3863708 oauth2_credentials.cc:158]
+#   Call to http server ended with error 401
+#   [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_",
+#   "expires_in":3599,  "token_type":"Bearer"}].
+# *** SIGSEGV received at time=1628178543 on cpu 3 ***
+# PC: @     0x7ff236e4219c  (unknown)  __strlen_evex
 #     @ ... and at least 1 more frames
 #
-# CHECKME
-certificate_provider_store
-
-# Unexplained:
-#
-# [ RUN      ] GrpcTlsCertificateDistributorTest.SetKeyMaterialsInCallback
-# terminate called without an active exception
-# *** SIGABRT received at time=1619125567 ***
-# PC: @ 0xb682c114  (unknown)  raise
-#     @ 0xb67e817c  (unknown)  (unknown)
-#     @ 0xb682d6b0  (unknown)  (unknown)
-#     @ 0xb682c114  (unknown)  raise
-#
-# CHECKME
-grpc_tls_certificate_distributor
-
-# Unexplained:
-#
-# [ RUN      ] GetCpuStatsTest.BusyNoLargerThanTotal
-# ../test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
-# Expected: (busy) <= (total), actual: 9025859384538762329 vs
-#     3751280126112716351
-# [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
-#
-# CHECKME
-lb_get_cpu_stats
-%endif
+# Confirmed in 1.39.0 2021-08-05
+test_core_security_credentials
 
 EOF
 } | xargs -r chmod -v a-x
