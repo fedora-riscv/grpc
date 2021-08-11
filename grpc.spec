@@ -23,17 +23,29 @@
 # https://github.com/grpc/grpc/issues/23432.
 %bcond_without core_tests
 
-# A few failing Python “test_lite” tests are skipped without understanding.
-# This lets us easily re-enable them to try to work toward a fix or a useful
-# upstream bug report.
-%bcond_with unexplained_failing_python_lite_tests
+# A number failing Python tests are skipped without understanding.  This lets
+# us easily re-enable them to try to work toward a fix or a useful upstream bug
+# report.
+#
+# Note that some failing tests fail only with a particular test suite
+# (test_lite/test_gevent/etc.); it is not easy for us to skip tests based on
+# which test suite is running them, so we skip a test if it fails in any suite.
+%bcond_with unexplained_failing_python_tests
 
 # A great many of these tests (over 20%) fail. Any help in understanding these
 # well enough to fix them or report them upstream is welcome.
 %bcond_with python_aio_tests
 
-# Several of these still fail. We should try to work toward re-enabling this.
+%ifnarch s390x
+%bcond_without python_gevent_tests
+%else
+# A signficant number of Python tests pass in test_lite but fail in
+# test_gevent, mostly by dumping core without a traceback.  Since it is tedious
+# to enumerate these (and it is difficult to implement “suite-specific” skips
+# for shared tests, so the tests would have to be skipped in all suites), we
+# just skip the gevent suite entirely on this architecture.
 %bcond_with python_gevent_tests
+%endif
 
 Name:           grpc
 Version:        1.39.0
@@ -687,7 +699,7 @@ echo '===== Fixing .pc install path =====' 2>&1
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 echo '===== Patching to skip certain broken tests =====' 2>&1
-%if %{without unexplained_failing_python_lite_tests}
+%if %{without unexplained_failing_python_tests}
 # Confirmed in 1.39.0 2021-07-29
 # TODO figure out how to report this upstream in a useful/actionable way
 sed -r -i "s/^([[:blank:]]*)(def test_deallocated_server_stops)\\b/\
@@ -714,10 +726,89 @@ sed -r -i \
     'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
 %endif
 
-%ifarch %{arm64}
-# Confirmed in 1.39.0 2021-08-06
+# Confirmed in 1.39.0 2021-08-19
+# These tests can be flaky and may fail only sometimes. Failures have been seen
+# on all architectures.
 # TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def testConcurrentFutureInvocations)\\b/\
+sed -r -i "s/^([[:blank:]]*)(def testConcurrent(Blocking|Future)\
+Invocations)\\b/\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
+
+%ifarch %{arm64} ppc64le s390x x86_64
+# Confirmed in 1.39.0 2021-08-11
+# TODO figure out how to report this upstream in a useful/actionable way
+#
+# unit._dynamic_stubs_test.DynamicStubTest.test_grpc_tools_unimportable
+# traceback:
+# Traceback (most recent call last):
+#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
+#     yield
+#   File "/usr/lib64/python3.10/unittest/case.py", line 592, in run
+#     self._callTestMethod(testMethod)
+#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
+#     method()
+#   File
+#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py",
+#       line 136, in test_grpc_tools_unimportable
+#     _run_in_subprocess(_test_grpc_tools_unimportable)
+#   File
+#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py",
+#       line 80, in _run_in_subprocess
+#     assert proc.exitcode == 0, "Process exited with code {}".format(
+# AssertionError: Process exited with code 64
+sed -r -i "s/^([[:blank:]]*)(class DynamicStubTest)\\b/\
+\\1@unittest.skip('Child process exits with code 64')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py'
+%endif
+
+%ifarch %{arm64} ppc64le s390x x86_64
+# Confirmed in 1.39.0 2021-08-11
+# TODO figure out how to report this upstream in a useful/actionable way
+#
+# unit._logging_test.LoggingTest.test_can_configure_logger
+# traceback:
+# Traceback (most recent call last):
+#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
+#     yield
+#   File "/usr/lib64/python3.10/unittest/case.py", line 592, in run
+#     self._callTestMethod(testMethod)
+#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
+#     method()
+#   File
+#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_logging_test.py",
+#       line 66, in test_can_configure_logger
+#     self._verifyScriptSucceeds(script)
+#   File
+#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_logging_test.py",
+#       line 91, in _verifyScriptSucceeds
+#     self.assertEqual(
+#   File "/usr/lib64/python3.10/unittest/case.py", line 839, in assertEqual
+#     assertion_func(first, second, msg=msg)
+#   File "/usr/lib64/python3.10/unittest/case.py", line 832, in _baseAssertEqual
+#     raise self.failureException(msg)
+# AssertionError: 0 != 64 : process failed with exit code 64 (stdout: b'', stderr: b'')
+sed -r -i "s/^([[:blank:]]*)(def test_(can_configure_logger|grpc_logger|\
+handler_found|logger_not_occupied))\\b/\
+\\1@unittest.skip('Child process exits with code 64')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_logging_test.py'
+%endif
+
+%ifarch %{ix86} %{arm32}
+# Confirmed in 1.39.0 2021-08-11
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def testCancelManyCalls)\\b/\
+\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
+    'src/python/grpcio_tests/tests/unit/_cython/_cancel_many_calls_test.py'
+%endif
+
+%ifarch %{arm64}
+# Confirmed in 1.39.0 2021-08-11
+# Some of these (at least testSuccessfulStreamRequestStreamResponse) may be
+# flaky and fail only occasionally.
+# TODO figure out how to report this upstream in a useful/actionable way
+sed -r -i "s/^([[:blank:]]*)(def test\
+(ConsumingSomeButNotAllStreamResponsesStreamRequest|\
+SuccessfulStreamRequestStreamResponse))\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
 %endif
@@ -982,82 +1073,6 @@ ssl_transport_security
 # Seems to require privilege:
 flaky_network
 
-# Bad assumption about which directory the tests are running in:
-#
-# E0802 01:16:33.084040928 3911182 subprocess_posix.cc:61]
-#   execv 'redhat-linux-build/../../test/core/http/python_wrapper.sh'
-#   failed: No such file or directory
-# E0802 01:16:39.086691950 3911178 httpcli_test.cc:52]
-#   assertion failed: response->status == 200
-# *** SIGABRT received at time=16278 66999 on cpu 1 ***
-
-# While we have fixed a couple of problems with these tests, including porting
-# the test server to Python 3, success still eludes us.
-#
-# 127.0.0.1 - - [02/Aug/2021 20:34:47] "GET /get HTTP/1.0" 200 -
-# E0802 20:34:48.343858742 1765052 httpcli_test.cc:52]
-#   assertion failed: response->status == 200
-# *** SIGABRT received at time=1627936488 on cpu 2 ***
-# PC: @     0x7fe44b4f2783  (unknown)  pthread_kill@@GLIBC_2.34
-#     @ ... and at least 1 more frames
-#
-# Confirmed in 1.39.0 2021-08-02
-httpcli
-httpscli
-
-# Error shutting down fd, then falsely claims the port server is not running.
-#
-# [ RUN      ] ServerBuilderTest.CreateServerOnePort
-# E0413 22:52:26.853421021   28920 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# E0413 22:52:30.082373319   28920 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# E0413 22:52:33.168560214   28923 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# E0413 22:52:36.905371168   28920 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# E0413 22:52:40.455413890   28923 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# E0413 22:52:44.012408974   28922 ev_epollex_linux.cc:516]
-#   Error shutting down fd 7. errno: 9
-# gRPC tests require a helper port server to allocate ports used
-# during the test.
-#
-# This server is not currently running.
-#
-# To start it, run tools/run_tests/start_port_server.py
-#
-# CHECKME
-admin_services_end2end
-alts_concurrent_connectivity
-async_end2end
-channelz_service
-cli_call
-client_callback_end2end
-client_channel_stress
-client_interceptors_end2end
-client_lb_end2end
-context_allocator_end2end
-delegating_channel
-end2end
-filter_end2end
-generic_end2end
-grpc_tool
-grpclb_end2end
-health_service_end2end
-hybrid_end2end
-mock
-nonblocking
-proto_server_reflection
-raw_end2end
-server_builder
-server_builder_plugin
-service_config_end2end
-shutdown
-streaming_throughput
-thread_stress
-xds_end2end
-
 %ifarch s390x
 # Unexplained:
 #
@@ -1114,6 +1129,43 @@ alts_crypter
 %ifarch s390x
 # Unexplained:
 #
+# [ RUN      ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
+# E0811 15:42:24.743250725 2232792
+#   alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More
+#   bytes written than expected. Frame decryption failed.
+# [… 14 similar lines omitted …]
+# E0811 15:42:29.735499217 2232786
+#   alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More
+#   bytes written than expected. Frame decryption failed.
+# /builddir/build/BUILD/grpc-1.39.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:245:
+#   Failure
+# Expected equality of these values:
+#   ev.type
+#     Which is: 1
+#   GRPC_OP_COMPLETE
+#     Which is: 2
+# connect_loop runner:0x3ffc7ffdc68 got ev.type:1 i:0
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes (5021 ms)
+# [ RUN      ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
+# [… 2983 lines including some additional failures and error messages omitted …]
+# [----------] 5 tests from AltsConcurrentConnectivityTest (27346 ms total)
+# [----------] Global test environment tear-down
+# [==========] 5 tests from 1 test suite ran. (27347 ms total)
+# [  PASSED  ] 3 tests.
+# [  FAILED  ] 2 tests, listed below:
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
+#  2 FAILED TESTS
+# E0811 15:43:02.072126233 2232783 test_config.cc:195]
+#   Timeout in waiting for gRPC shutdown
+#
+# Confirmed in 1.39.0 2021-08-11
+alts_concurrent_connectivity
+%endif
+
+%ifarch s390x
+# Unexplained:
+#
 # (aborted without output)
 #
 # Confirmed in 1.39.0 2021-08-05
@@ -1123,61 +1175,54 @@ alts_frame_protector
 %ifarch s390x
 # Unexplained:
 #
-# E0502 15:06:40.951214061 1640707
-# alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
+# E0809 03:12:16.141688879 1707771
+#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
 #   authenticated associated data failed
-# E0502 15:06:40.951411109 1640707 alts_grpc_record_protocol_test.cc:282]
+# E0809 03:12:16.141863502 1707771 alts_grpc_record_protocol_test.cc:282]
 #   assertion failed: status == TSI_OK
-# *** SIGABRT received at time=1619968000 ***
-# PC: @      0x3ff939c8e0c  (unknown)  raise
-#     @      0x3ff938814c4  (unknown)  (unknown)
-#     @      0x3ff9388168a  (unknown)  (unknown)
-#     @      0x3ff944e4b78  (unknown)  (unknown)
-#     @      0x3ff939c8e0c  (unknown)  raise
-#     @      0x3ff939abae8  (unknown)  abort
-#     @      0x2aa11482c9e  (unknown)  random_seal_unseal()
-#     @      0x2aa11483558  (unknown)  alts_grpc_record_protocol_tests()
-#     @      0x2aa11481b08  (unknown)  main
-#     @      0x3ff939abdf4  (unknown)  __libc_start_main
-#     @      0x2aa11481bc4  (unknown)  (unknown)
+# *** SIGABRT received at time=1628478736 on cpu 2 ***
+# PC: @      0x3ffa571ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ffa5601524  (unknown)  (unknown)
+#     @      0x3ffa5601790  (unknown)  (unknown)
+#     @      0x3ffa61e3b78  (unknown)  (unknown)
+#     @      0x3ffa571ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ffa56d03e0  (unknown)  gsignal
+#     @      0x3ffa56b3480  (unknown)  abort
+#     @      0x2aa1fa82e3e  (unknown)  random_seal_unseal()
+#     @      0x2aa1fa836f8  (unknown)  alts_grpc_record_protocol_tests()
+#     @      0x2aa1fa81c68  (unknown)  main
+#     @      0x3ffa56b3732  (unknown)  __libc_start_call_main
+#     @      0x3ffa56b380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa1fa81d60  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 alts_grpc_record_protocol
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0505 21:08:10.125639702 2153925 alts_handshaker_client.cc:863]
-#   client or client->vtable has not been initialized properly
-# E0505 21:08:10.125794714 2153925 alts_handshaker_client.cc:579]
-#   Invalid arguments to handshaker_client_start_server()
-# E0505 21:08:10.125877215 2153925 alts_handshaker_client.cc:874]
-#   client or client->vtable has not been initialized properly
-# E0505 21:08:10.125948887 2153925 alts_handshaker_client.cc:615]
-#   Invalid arguments to handshaker_client_next()
-# E0505 21:08:10.126015062 2153925 alts_handshaker_client.cc:885]
-#   client or client->vtable has not been initialized properly
-# E0505 21:08:10.126146291 2153925 alts_handshaker_client_test.cc:177]
-#   assertion failed:
-#   grpc_gcp_StartClientHandshakeReq_handshake_security_protocol( client_start)
-#   == grpc_gcp_ALTS
-# *** SIGABRT received at time=1620248890 ***
-# PC: @      0x3ff98ac8e0c  (unknown)  raise
-#     @      0x3ff989814c4  (unknown)  (unknown)
-#     @      0x3ff9898168a  (unknown)  (unknown)
-#     @      0x3ff99664b78  (unknown)  (unknown)
-#     @      0x3ff98ac8e0c  (unknown)  raise
-#     @      0x3ff98aabae8  (unknown)  abort
-#     @      0x2aa3760375e  (unknown)  check_client_start_success()
-#     @      0x3ff99419a72  (unknown)  continue_make_grpc_call()
-#     @      0x3ff9941ac58  (unknown)  handshaker_client_start_client()
-#     @      0x2aa37603c66  (unknown)  schedule_request_success_test()
-#     @      0x2aa3760281e  (unknown)  main
-#     @      0x3ff98aabdf4  (unknown)  __libc_start_main
-#     @      0x2aa376028b4  (unknown)  (unknown)
+# E0807 15:46:27.681935728 3628534
+#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
+#   authenticated associated data failed
+# E0807 15:46:27.682097664 3628534 alts_grpc_record_protocol_test.cc:282]
+#   assertion failed: status == TSI_OK
+# *** SIGABRT received at time=1628351187 on cpu 1 ***
+# PC: @      0x3ffbae9ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ffbad81524  (unknown)  (unknown)
+#     @      0x3ffbad81790  (unknown)  (unknown)
+#     @      0x3ffbb963b78  (unknown)  (unknown)
+#     @      0x3ffbae9ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ffbae503e0  (unknown)  gsignal
+#     @      0x3ffbae33480  (unknown)  abort
+#     @      0x2aa07782e3e  (unknown)  random_seal_unseal()
+#     @      0x2aa077836f8  (unknown)  alts_grpc_record_protocol_tests()
+#     @      0x2aa07781c68  (unknown)  main
+#     @      0x3ffbae33732  (unknown)  __libc_start_call_main
+#     @      0x3ffbae3380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa07781d60  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-08
 alts_handshaker_client
 %endif
 
@@ -1186,7 +1231,7 @@ alts_handshaker_client
 #
 # (aborted without output)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 alts_iovec_record_protocol
 %endif
 
@@ -1194,76 +1239,59 @@ alts_iovec_record_protocol
 # Unexplained:
 #
 # [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
-# ../test/cpp/common/alts_util_test.cc:122: Failure
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/common/alts_util_test.cc:122: Failure
 # Expected equality of these values:
 #   expected_sl
 #     Which is: 1
 #   alts_context->security_level()
 #     Which is: 0
 # [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions (0 ms)
-# [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContext
-# [       OK ] AltsUtilTest.AuthContextWithGoodAltsContext (0 ms)
-# [ RUN      ] AltsUtilTest.AltsClientAuthzCheck
-# [       OK ] AltsUtilTest.AltsClientAuthzCheck (0 ms)
-# [----------] 7 tests from AltsUtilTest (0 ms total)
-# [----------] Global test environment tear-down
-# [==========] 7 tests from 1 test suite ran. (0 ms total)
-# [  PASSED  ] 6 tests.
-# [  FAILED  ] 1 test, listed below:
-# [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
-#  1 FAILED TEST
-# E0506 13:27:12.407095885 2895549 alts_util.cc:37]
-#     auth_context is nullptr.
-# E0506 13:27:12.407174329 2895549 alts_util.cc:43]
-#     contains zero or more than one ALTS context.
-# E0506 13:27:12.407191312 2895549 alts_util.cc:43]
-#     contains zero or more than one ALTS context.
-# E0506 13:27:12.407210713 2895549 alts_util.cc:50]
-#     fails to parse ALTS context.
-# E0506 13:27:12.407261763 2895549 alts_util.cc:43]
-#     contains zero or more than one ALTS context.
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 alts_util
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0506 14:42:08.079363072 2916785
-#     alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect,
-#     Setting authenticated associated data failed
-# E0506 14:42:08.079807806 2916785 alts_zero_copy_grpc_protector_test.cc:183]
-#     assertion failed: tsi_zero_copy_grpc_protector_protect( sender,
-#     &var->original_sb, &var->protected_sb) == TSI_OK
-# *** SIGABRT received at time=1620312128 ***
-# PC: @      0x3ffae548e0c  (unknown)  raise
-#     @      0x3ffae4014c4  (unknown)  (unknown)
-#     @      0x3ffae40168a  (unknown)  (unknown)
-#     @      0x3ffaf064b78  (unknown)  (unknown)
-#     @      0x3ffae548e0c  (unknown)  raise
-#     @      0x3ffae52bae8  (unknown)  abort
-#     @      0x2aa11202728  (unknown)  seal_unseal_small_buffer()
-#     @      0x2aa112028d8  (unknown)
-#         alts_zero_copy_protector_seal_unseal_small_buffer_tests()
-#     @      0x2aa112019d6  (unknown)  main
-#     @      0x3ffae52bdf4  (unknown)  __libc_start_main
-#     @      0x2aa11201a84  (unknown)  (unknown)
+# E0809 16:49:05.522667340 1558872
+#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
+#   authenticated associated data failed
+# E0809 16:49:05.523083934 1558872 alts_zero_copy_grpc_protector_test.cc:183]
+#   assertion failed: tsi_zero_copy_grpc_protector_protect( sender,
+#   &var->original_sb, &var->protected_sb) == TSI_OK
+# *** SIGABRT received at time=1628527745 on cpu 2 ***
+# PC: @      0x3ff8169ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff81581524  (unknown)  (unknown)
+#     @      0x3ff81581790  (unknown)  (unknown)
+#     @      0x3ff82163b78  (unknown)  (unknown)
+#     @      0x3ff8169ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff816503e0  (unknown)  gsignal
+#     @      0x3ff81633480  (unknown)  abort
+#     @      0x2aa3d0028b8  (unknown)  seal_unseal_small_buffer()
+#     @      0x2aa3d002a68  (unknown)  alts_zero_copy_protector_seal_unseal_small_buffer_tests()
+#     @      0x2aa3d001b26  (unknown)  main
+#     @      0x3ff81633732  (unknown)  __libc_start_call_main
+#     @      0x3ff8163380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa3d001c10  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 alts_zero_copy_grpc_protector
 %endif
 
 %ifarch %{ix86} %{arm32}
 # Unexplained:
 #
+# [ RUN      ] CertificateProviderStoreTest.Basic
+# E0809 18:01:00.777880860  323759 certificate_provider_store.cc:67]
+#   Certificate provider factory fake2 not found
+# [       OK ] CertificateProviderStoreTest.Basic (1 ms)
 # [ RUN      ] CertificateProviderStoreTest.Multithreaded
 # terminate called without an active exception
-# *** SIGABRT received at time=1619103150 ***
-# PC: @ 0xf7fa3559  (unknown)  __kernel_vsyscall
-#     @ ... and at least 1 more frames
+# *** SIGABRT received at time=1628532060 on cpu 0 ***
+# PC: @ 0xf7f9d559  (unknown)  __kernel_vsyscall
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 certificate_provider_store
 %endif
 
@@ -1271,16 +1299,137 @@ certificate_provider_store
 # Unexplained:
 #
 # [ RUN      ] ChannelTracerTest.TestMultipleEviction
-# ../test/core/channel/channel_trace_test.cc:65: Failure
+# /builddir/build/BUILD/grpc-1.39.0/test/core/channel/channel_trace_test.cc:65:
+#   Failure
 # Expected equality of these values:
 #   array.array_value().size()
 #     Which is: 3
 #   expected
 #     Which is: 4
-# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (2 ms)
+# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (1 ms)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 channel_trace
+%endif
+
+%ifarch ppc64le %{arm32} %{arm64} s390x
+# Unexplained:
+#
+# ppc64le, aarch64:
+#
+# E0811 14:46:04.709808861 2142245 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# terminate called after throwing an instance of 'std::runtime_error'
+#   what():  random_device::random_device(const std::string&): device not available
+# *** SIGABRT received at time=1628693164 on cpu 4 ***
+# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
+# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0x7fff926a9864 while already in AbslFailureSignalHandler()
+# [… 13710 similar messages omitted …]
+# *** SIGABRT received at time=1628693166 on cpu 1 ***
+# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
+# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0x7fff926a9864 while already in AbslFailureSignalHandler()
+# *** SIGABRT received at time=1628693167 on cpu 1 ***
+# PC: @     0x7fff926a9864  (unknown)  __pthread_kill_internal
+#     @     0x7fff92461a48  (unknown)  (unknown)
+#     @     0x7fff937ae4e2         48  (unknown)
+#     @     0x7fff9264848c         48  gsignal
+#     @     0x7fff92621404        336  abort
+#     @     0x7fff91d112a4       3200  (unknown)
+#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
+#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
+#     @     0x7fff923f1568        176  (unknown)
+#     @     0x7fff923f1730         96  (unknown)
+#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
+#     @     0x7fff924616e4        480  (unknown)
+#     @     0x7fff92461a48  (unknown)  (unknown)
+#     @     0x7fff937ae4e2         48  (unknown)
+#     @     0x7fff9264848c         48  gsignal
+#     @     0x7fff92621404        336  abort
+#     @     0x7fff91d112a4       3200  (unknown)
+#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
+#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
+#     @     0x7fff923f1568        176  (unknown)
+#     @     0x7fff923f1730         96  (unknown)
+#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
+#     @     0x7fff924616e4        480  (unknown)
+#     @     0x7fff92461a48  (unknown)  (unknown)
+#     @     0x7fff937ae4e2         48  (unknown)
+#     @     0x7fff9264848c         48  gsignal
+#     @     0x7fff92621404        336  abort
+#     @     0x7fff91d112a4       3200  (unknown)
+#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
+#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
+#     @     0x7fff923f1568        176  (unknown)
+#     @     0x7fff923f1730         96  (unknown)
+#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
+#     @ ... and at least 1000 more frames
+#
+# armv7hl, s390x:
+#
+# E0811 15:35:58.278096553   31424 grpclb.cc:1055]             [grpclb 0xfe65c0] lb_calld=0xfe9778: Invalid LB response received: ''. Ignoring.
+# E0811 15:35:58.966844494   31575 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# terminate called after throwing an instance of 'std::runtime_error'
+#   what():  random_device::random_device(const std::string&): device not available
+# *** SIGABRT received at time=1628696159 on cpu 4 ***
+# [symbolize_elf.inc : 965] RAW: /proc/self/task/31421/maps: errno=24
+# PC: @ 0xb6418058  (unknown)  (unknown)
+#     @ 0xb62d4274  (unknown)  (unknown)
+#     @ 0xb63d2310  (unknown)  (unknown)
+#     @ 0xb6418058  (unknown)  (unknown)
+#     @ 0xb63d0ddc  (unknown)  (unknown)
+#
+# Confirmed in 1.39.0 2021-08-11
+client_channel_stress
+%endif
+
+%ifarch s390x
+# Unexplained hang:
+#
+# [ RUN      ] ClientLbEnd2endTest.RoundRobinWithHealthChecking
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1452: Failure
+# Value of: WaitForChannelReady(channel.get())
+#   Actual: false
+# Expected: true
+# [… hundreds of similar messages …]
+# From /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1462
+# Error: Deadline Exceeded
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:342: Failure
+# Value of: success
+#   Actual: false
+# Expected: true
+# From /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1462
+# Error: Deadline Exceeded
+# timeout: sending signal TERM to command 'redhat-linux-build/client_lb_end2end_test'
+# *** SIGTERM received at time=1628744184 on cpu 0 ***
+# PC: @      0x3ff89d165aa  (unknown)  epoll_wait
+#     @      0x3ff89881524  (unknown)  (unknown)
+#     @      0x3ff89881790  (unknown)  (unknown)
+#     @      0x3ff8acffb78  (unknown)  (unknown)
+#     @      0x3ff89d165aa  (unknown)  epoll_wait
+#     @      0x3ff8a573dea  (unknown)  pollset_work()
+#     @      0x3ff8a577630  (unknown)  pollset_work()
+#     @      0x3ff8a611a8e  (unknown)  cq_pluck()
+#     @      0x3ff8a6102c2  (unknown)  grpc_completion_queue_pluck
+#     @      0x3ff8a84c08c  (unknown)  grpc::CoreCodegen::grpc_completion_queue_pluck()
+#     @      0x2aa189b3de0  (unknown)  grpc::CompletionQueue::Pluck()
+#     @      0x2aa189bb4be  (unknown)  grpc::internal::BlockingUnaryCallImpl<>::BlockingUnaryCallImpl()
+#     @      0x2aa189d213a  (unknown)  grpc::internal::BlockingUnaryCall<>()
+#     @      0x2aa189c4e2e  (unknown)  grpc::testing::EchoTestService::Stub::Echo()
+#     @      0x2aa18a01112  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::SendRpc()
+#     @      0x2aa18a0139c  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::CheckRpcSendOk()
+#     @      0x2aa18a07a00  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::WaitForServer()
+#     @      0x2aa18a0f97a  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest_RoundRobinWithHealthChecking_Test::TestBody()
+#     @      0x2aa18a706f6  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa18a62aba  (unknown)  testing::Test::Run()
+#     @      0x2aa18a62d54  (unknown)  testing::TestInfo::Run()
+#     @      0x2aa18a635ce  (unknown)  testing::TestSuite::Run()
+#     @      0x2aa18a64258  (unknown)  testing::internal::UnitTestImpl::RunAllTests()
+#     @      0x2aa18a70c86  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa18a62e68  (unknown)  testing::UnitTest::Run()
+#     @      0x2aa189aa086  (unknown)  main
+#     @      0x3ff89c33732  (unknown)  __libc_start_call_main
+#     @      0x3ff89c3380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa189ac6a0  (unknown)  (unknown)
+client_lb_end2end
 %endif
 
 # Unexplained:
@@ -1321,24 +1470,26 @@ examine_stack
 %ifarch s390x
 # Unexplained:
 #
-# E0506 16:24:35.085362185 2328244 cq_verifier.cc:228]
-#     no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1
-#     ../test/core/end2end/goaway_server_test.cc:264
+# E0809 21:33:27.754988355 3699302 cq_verifier.cc:228]
+#   no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1
+#   /builddir/build/BUILD/grpc-1.39.0/test/core/end2end/goaway_server_test.cc:264
 # tag(769) GRPC_OP_COMPLETE success=1
-#     ../test/core/end2end/goaway_server_test.cc:265
-# *** SIGABRT received at time=1620318275 ***
-# PC: @      0x3ffa05c8e0c  (unknown)  raise
-#     @      0x3ffa04814c4  (unknown)  (unknown)
-#     @      0x3ffa048168a  (unknown)  (unknown)
-#     @      0x3ffa11e4b78  (unknown)  (unknown)
-#     @      0x3ffa05c8e0c  (unknown)  raise
-#     @      0x3ffa05abae8  (unknown)  abort
-#     @      0x2aa1e984e96  (unknown)  cq_verify()
-#     @      0x2aa1e9833ce  (unknown)  main
-#     @      0x3ffa05abdf4  (unknown)  __libc_start_main
-#     @      0x2aa1e983ac4  (unknown)  (unknown)
+#   /builddir/build/BUILD/grpc-1.39.0/test/core/end2end/goaway_server_test.cc:265
+# *** SIGABRT received at time=1628544807 on cpu 2 ***
+# PC: @      0x3ff9ce1ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff9cd01524  (unknown)  (unknown)
+#     @      0x3ff9cd01790  (unknown)  (unknown)
+#     @      0x3ff9d9e3b78  (unknown)  (unknown)
+#     @      0x3ff9ce1ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff9cdd03e0  (unknown)  gsignal
+#     @      0x3ff9cdb3480  (unknown)  abort
+#     @      0x2aa3fb850a6  (unknown)  cq_verify()
+#     @      0x2aa3fb8359e  (unknown)  main
+#     @      0x3ff9cdb3732  (unknown)  __libc_start_call_main
+#     @      0x3ff9cdb380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa3fb83cd0  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 goaway_server
 %endif
 
@@ -1347,45 +1498,84 @@ goaway_server
 #
 # [ RUN      ] GrpcTlsCertificateDistributorTest.SetKeyMaterialsInCallback
 # terminate called without an active exception
-# *** SIGABRT received at time=1619125567 ***
-# PC: @ 0xb682c114  (unknown)  raise
-#     @ 0xb67e817c  (unknown)  (unknown)
-#     @ 0xb682d6b0  (unknown)  (unknown)
-#     @ 0xb682c114  (unknown)  raise
+# *** SIGABRT received at time=1628556696 on cpu 3 ***
+# PC: @ 0xf7fa9559  (unknown)  __kernel_vsyscall
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-09
 grpc_tls_certificate_distributor
 %endif
+
+# Unexplained:
+#
+# [ RUN      ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet
+# [libprotobuf ERROR google/protobuf/text_format.cc:319] Error parsing text-format grpc.testing.SimpleRequest: 1:7: Message type "grpc.testing.SimpleRequest" has no field named "redhat".
+# Failed to convert text format to proto.
+# Failed to parse request.
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/util/grpc_tool_test.cc:912: Failure
+# Value of: 0 == GrpcToolMainLib(ArraySize(argv), argv, TestCliCredentials(), std::bind(PrintStream, &output_stream, std::placeholders::_1))
+#   Actual: false
+# Expected: true
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/util/grpc_tool_test.cc:917: Failure
+# Value of: nullptr != strstr(output_stream.str().c_str(), "message: \"true\"")
+#   Actual: false
+# Expected: true
+# [  FAILED  ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet (4 ms)
+#
+# Confirmed in 1.39.0 2021-08-10
+grpc_tool
+
+# Bad assumption about which directory the tests are running in:
+#
+# E0802 01:16:33.084040928 3911182 subprocess_posix.cc:61]
+#   execv 'redhat-linux-build/../../test/core/http/python_wrapper.sh'
+#   failed: No such file or directory
+# E0802 01:16:39.086691950 3911178 httpcli_test.cc:52]
+#   assertion failed: response->status == 200
+# *** SIGABRT received at time=16278 66999 on cpu 1 ***
+
+# While we have fixed a couple of problems with these tests, including porting
+# the test server to Python 3, success still eludes us.
+#
+# 127.0.0.1 - - [02/Aug/2021 20:34:47] "GET /get HTTP/1.0" 200 -
+# E0802 20:34:48.343858742 1765052 httpcli_test.cc:52]
+#   assertion failed: response->status == 200
+# *** SIGABRT received at time=1627936488 on cpu 2 ***
+# PC: @     0x7fe44b4f2783  (unknown)  pthread_kill@@GLIBC_2.34
+#     @ ... and at least 1 more frames
+#
+# Confirmed in 1.39.0 2021-08-02
+httpcli
+httpscli
 
 %ifarch %{ix86} %{arm32}
 # Unexplained:
 #
-# [ RUN      ] GetCpuStatsTest.BusyNoLargerThanTotal
-# ../test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
-# Expected: (busy) <= (total), actual: 9025859384538762329 vs
-#     3751280126112716351
+# /builddir/build/BUILD/grpc-1.39.0/test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
+# Expected: (busy) <= (total), actual: 9034196912422118975 vs 3761728973136652623
 # [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-10
 lb_get_cpu_stats
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# *** SIGABRT received at time=1620336694 ***
-# PC: @      0x3ffa3348e0c  (unknown)  raise
-#     @      0x3ffa32014c4  (unknown)  (unknown)
-#     @      0x3ffa320168a  (unknown)  (unknown)
-#     @      0x3ffa39e4b78  (unknown)  (unknown)
-#     @      0x3ffa3348e0c  (unknown)  raise
-#     @      0x3ffa332bae8  (unknown)  abort
-#     @      0x2aa27600c8e  (unknown)  verification_test()
-#     @      0x2aa27600a24  (unknown)  main
-#     @      0x3ffa332bdf4  (unknown)  __libc_start_main
-#     @      0x2aa27600aa4  (unknown)  (unknown)
+# *** SIGABRT received at time=1628614005 on cpu 0 ***
+# PC: @      0x3ff81d1ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff81c01524  (unknown)  (unknown)
+#     @      0x3ff81c01790  (unknown)  (unknown)
+#     @      0x3ff82363b78  (unknown)  (unknown)
+#     @      0x3ff81d1ec8e  (unknown)  __pthread_kill_internal
+#     @      0x3ff81cd03e0  (unknown)  gsignal
+#     @      0x3ff81cb3480  (unknown)  abort
+#     @      0x2aa18880c9e  (unknown)  verification_test()
+#     @      0x2aa18880a34  (unknown)  main
+#     @      0x3ff81cb3732  (unknown)  __libc_start_call_main
+#     @      0x3ff81cb380e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa18880ab0  (unknown)  (unknown)
 #
-# CHECKME
+# Confirmed in 1.39.0 2021-08-10
 murmur_hash
 %endif
 
@@ -1430,33 +1620,6 @@ stack_tracer
 sync
 %endif
 
-%ifarch s390x
-# Unexplained:
-#
-# E0416 16:03:14.051081049   67245 tcp_posix_test.cc:387]
-#     assertion failed: error == GRPC_ERROR_NONE
-# *** SIGABRT received at time=1618588994 ***
-# PC: @       0x4001f5be0c  (unknown)  raise
-#     @       0x40020bf4c4  (unknown)  (unknown)
-#     @       0x40020bf68a  (unknown)  (unknown)
-#     @       0x4002624df0  (unknown)  (unknown)
-#     @       0x4001f5be0c  (unknown)  raise
-#     @       0x4001f3eae8  (unknown)  abort
-#     @       0x4000003f60  (unknown)  timestamps_verifier()
-#     @       0x4001ac36d8  (unknown)  grpc_core::TracedBuffer::Shutdown()
-#     @       0x4001ae53ea  (unknown)  tcp_shutdown_buffer_list()
-#     @       0x4001ae774a  (unknown)  tcp_flush()
-#     @       0x4001ae99f2  (unknown)  tcp_write()
-#     @       0x4000005806  (unknown)  write_test()
-#     @       0x400000622e  (unknown)  run_tests()
-#     @       0x40000028c8  (unknown)  main
-#     @       0x4001f3edf4  (unknown)  __libc_start_main
-#     @       0x40000029f4  (unknown)  (unknown)
-#
-# CHECKME
-tcp_posix
-%endif
-
 # Unexplained:
 #
 # This may be flaky and sometimes succeed; this is known to be the case on
@@ -1472,6 +1635,44 @@ tcp_posix
 #
 # Confirmed in 1.39.0 2021-08-05
 test_core_security_credentials
+
+# Unexplained:
+#
+# [ RUN      ] XdsTest/BasicTest.Vanilla/XdsResolverV3
+# E0811 05:13:55.545624715 3911922 xds_resolver.cc:836]
+#   [xds_resolver 0x5650c8f82c00] received error from XdsClient:
+#   {"created":"@1628658835.545596932","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# E0811 05:13:55.546102538 3911922 cds.cc:533]
+#   [cdslb 0x5650c8f80dd0] xds error obtaining data for cluster cluster_name:
+#   {"created":"@1628658835.545596932","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# E0811 05:13:55.546238067 3911922 xds_cluster_resolver.cc:741]
+#   [xds_cluster_resolver_lb 0x5650c90f0200] discovery mechanism 0 xds watcher
+#   reported error: {"created":"@1628658835.545596932","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# [       OK ] XdsTest/BasicTest.Vanilla/XdsResolverV3 (102 ms)
+# [ RUN      ] XdsTest/BasicTest.Vanilla/XdsResolverV3WithLoadReporting
+# E0811 05:13:55.635384861 3911938 xds_resolver.cc:836]
+#   [xds_resolver 0x5650c8f82c00] received error from XdsClient:
+#   {"created":"@1628658835.635350317","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# E0811 05:13:55.635785649 3911938 cds.cc:533]
+#   [cdslb 0x7f597800aaf0] xds error obtaining data for cluster cluster_name:
+#   {"created":"@1628658835.635350317","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# E0811 05:13:55.635941953 3911938 xds_cluster_resolver.cc:741]
+#   [xds_cluster_resolver_lb 0x7f597c004940] discovery mechanism 0 xds watcher
+#   reported error: {"created":"@1628658835.635350317","description":"xds call
+#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
+# [       OK ] XdsTest/BasicTest.Vanilla/XdsResolverV3WithLoadReporting (89 ms)
+# [ RUN      ] XdsTest/BasicTest.Vanilla/FakeResolverV3
+# *** SIGSEGV received at time=1628658835 on cpu 5 ***
+# PC: @     0x7f5984c2d19c  (unknown)  __strlen_evex
+#     @ ... and at least 1 more frames
+#
+# Confirmed in 1.39.0 2021-08-11
+xds_end2end
 
 EOF
 } | xargs -r chmod -v a-x
