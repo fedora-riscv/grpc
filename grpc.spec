@@ -48,7 +48,7 @@
 %endif
 
 Name:           grpc
-Version:        1.39.0
+Version:        1.39.1
 Release:        %autorelease
 Summary:        RPC library and framework
 
@@ -244,37 +244,33 @@ BuildRequires:  dos2unix
 #
 # In fact, this may not be needed, since only testing code is patched.
 Patch0:         %{name}-1.39.0-system-crypto-policies.patch
-# Build python3-grpcio_tools against system protobuf packages instead of
-# expecting a git submodule. Must also add requisite linker flags using
-# GRPC_PYTHON_LDFLAGS.
-Patch1:         %{name}-1.39.0-python-grpcio_tools-use-system-protobuf.patch
 # Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
 # option already provided upstream. See
 # https://github.com/grpc/grpc/issues/25559.
-Patch2:         %{name}-1.37.0-python-grpcio-use-system-abseil.patch
+Patch1:         %{name}-1.37.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
-Patch3:         %{name}-1.36.4-python-grpcio_tests-fixture-super.patch
+Patch2:         %{name}-1.36.4-python-grpcio_tests-fixture-super.patch
 # Skip tests requiring non-loopback network access when the
 # FEDORA_NO_NETWORK_TESTS environment variable is set.
-Patch4:         %{name}-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
+Patch3:         %{name}-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
 # A handful of compression tests miss the compression ratio threshold. It seems
 # to be inconsistent which particular combinations fail in a particular test
 # run. It is not clear that this is a real problem. Any help in understanding
 # the actual cause well enough to fix this or usefully report it upstream is
 # welcome.
-Patch5:         %{name}-1.36.4-python-grpcio_tests-skip-compression-tests.patch
+Patch4:         %{name}-1.36.4-python-grpcio_tests-skip-compression-tests.patch
 # The upstream requirement to link gtest/gmock from grpc_cli is spurious.
 # Remove it. We still have to build the core tests and link a test library
 # (libgrpc++_test_config.so…)
-Patch6:         %{name}-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
+Patch5:         %{name}-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # Fix confusion about path to python_wrapper.sh in httpcli/httpscli tests. I
 # suppose that the unpatched code must be correct for how upstream runs the
 # tests, somehow.
-Patch7:         %{name}-1.39.0-python_wrapper-path.patch
+Patch6:         %{name}-1.39.0-python_wrapper-path.patch
 # Port Python 2 scripts used in core tests to Python 3
-Patch8:         %{name}-1.39.0-python2-test-scripts.patch
+Patch7:         %{name}-1.39.0-python2-test-scripts.patch
 
 Requires:       %{name}-data = %{version}-%{release}
 
@@ -579,6 +575,22 @@ Testing utilities for gRPC Python.
 
 %prep
 %autosetup -p1
+
+echo '===== Patching grpcio_tools for system protobuf =====' 2>&1
+# Build python3-grpcio_tools against system protobuf packages instead of
+# expecting a git submodule. Must also add requisite linker flags using
+# GRPC_PYTHON_LDFLAGS. This was formerly done by
+# grpc-VERSION-python-grpcio_tools-use-system-protobuf.patch, but it had to be
+# tediously but trivially rebased every patch release as the CC_FILES list
+# changed, so we automated the patch.
+sed -r -i \
+    -e "s/^(# AUTO-GENERATED .*)/\\1\\n\
+# Then, modified by hand to build with an external system protobuf\
+# installation./" \
+    -e 's/^(CC_FILES=\[).*(\])/\1\2/' \
+    -e "s@^((CC|PROTO)_INCLUDE=')[^']+'@\1%{_includedir}'@" \
+    -e '/^PROTOBUF_SUBMODULE_VERSION=/d' \
+    'tools/distrib/python/grpcio_tools/protoc_lib_deps.py'
 
 echo '===== Preparing gtest/gmock =====' 2>&1
 %if %{without system_gtest}
