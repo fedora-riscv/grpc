@@ -630,8 +630,10 @@ rm -rvf third_party/xxhash
 # https://github.com/grpc/grpc/issues/25945.
 
 echo '===== Fixing permissions =====' 2>&1
-# Fix some of the weirdest accidentally-executable files
-find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
+# https://github.com/grpc/grpc/pull/27069
+find . -type f -perm /0111 \
+    -exec gawk '!/^#!/ { print FILENAME }; { nextfile }' '{}' '+' |
+  xargs -r chmod -v a-x
 
 echo '===== Loosening version specifications =====' 2>&1
 # Allow building Python documentation with a newer Sphinx; the upstream version
