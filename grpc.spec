@@ -1,36 +1,29 @@
 # We need to use C++17 to link against the system abseil-cpp, or we get linker
-# errors.
+# errors. Besides, we should be compiling C++ libraries with the ABI
+# corresponding to the default C++ standard on the system, since different C++
+# versions are not ABI-compatible.
 %global cpp_std 17
-
-# Bootstrapping breaks the circular dependency on python3dist(xds-protos),
-# which is packaged separately but ultimately generated from grpc sources using
-# the proto compilers in this package; the consequence is that we cannot build
-# the python3-grpcio-admin or python3-grpcio-csds, or the Python documentation,
-# until after bootstrapping.
-%bcond_with bootstrap
 
 # However, gtest in Fedora uses the C++11 ABI, so we get linker errors building
 # the tests if we use C++17. We must therefore bundle a copy of gtest in the
 # source RPM rather than using the system copy. This is to be discouraged, but
 # there is no alternative in this case. It is not treated as a bundled library
 # because it is used only at build time, and contributes nothing to the
-# installed files.
+# installed files. We take measures to verify this in %%check.
 %global gtest_version 1.11.0
 %bcond_with system_gtest
+
+# Bootstrapping breaks the circular dependency on python3dist(xds-protos),
+# which is packaged separately but ultimately generated from grpc sources using
+# the proto compilers in this package; the consequence is that we cannot build
+# the python3-grpcio-admin or python3-grpcio-csds subpackages or the Python
+# documentation until after bootstrapping.
+%bcond_with bootstrap
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
 # the tests by upstream. This is mentioned in
 # https://github.com/grpc/grpc/issues/23432.
 %bcond_without core_tests
-
-# A number failing Python tests are skipped without understanding.  This lets
-# us easily re-enable them to try to work toward a fix or a useful upstream bug
-# report.
-#
-# Note that some failing tests fail only with a particular test suite
-# (test_lite/test_gevent/etc.); it is not easy for us to skip tests based on
-# which test suite is running them, so we skip a test if it fails in any suite.
-%bcond_with unexplained_failing_python_tests
 
 # A great many of these tests (over 20%) fail. Any help in understanding these
 # well enough to fix them or report them upstream is welcome.
@@ -97,12 +90,12 @@ Summary:        RPC library and framework
 License:        ASL 2.0 and BSD
 URL:            https://www.%{name}.io
 %global forgeurl https://github.com/%{name}/%{name}/
-Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 # Used only at build time (not a bundled library); see notes at definition of
 # gtest_version macro for explanation and justification.
 %global gtest_url https://github.com/google/googletest
 %global gtest_archivename googletest-release-%{gtest_version}
-Source1:        https://github.com/google/googletest/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
+Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
+Source1:        %{gtest_url}/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
 
 # Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
 Source100:      %{name}_cli.1
@@ -711,7 +704,6 @@ echo '===== Fixing .pc install path =====' 2>&1
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 echo '===== Patching to skip certain broken tests =====' 2>&1
-%if %{without unexplained_failing_python_tests}
 # Confirmed in 1.39.0 2021-07-29
 # TODO figure out how to report this upstream in a useful/actionable way
 sed -r -i "s/^([[:blank:]]*)(def test_deallocated_server_stops)\\b/\
@@ -823,8 +815,6 @@ sed -r -i "s/^([[:blank:]]*)(def test\
 SuccessfulStreamRequestStreamResponse))\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
-%endif
-
 %endif
 
 
