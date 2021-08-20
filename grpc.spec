@@ -229,8 +229,6 @@ BuildRequires:  ca-certificates
 # For converting absolute symlinks in the buildroot to relative ones
 BuildRequires:  symlinks
 
-BuildRequires:  dos2unix
-
 # Apply Fedora system crypto policies. Since this is Fedora-specific, the patch
 # is not suitable for upstream.
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
@@ -676,13 +674,6 @@ find . -type f -perm /0111 -exec gawk \
     '/^#!\/usr\/bin\/env[[:blank:]]/ { print FILENAME }; { nextfile }' \
     '{}' '+' |
   xargs -r sed -r -i '1{s|^(#!/usr/bin/)env[[:blank:]]+([^[:blank:]]+)|\1\2|}' \
-
-echo '===== Fixing line endings =====' 2>&1
-# Fix some CRNL line endings:
-dos2unix \
-    examples/cpp/helloworld/CMakeLists.txt \
-    examples/cpp/helloworld/cmake_externalproject/CMakeLists.txt
-# We leave those under examples/csharp alone.
 
 echo '===== Fixing hard-coded C++ standard =====' 2>&1
 # We need to adjust the C++ standard to avoid abseil-related linker errors. For
