@@ -672,15 +672,10 @@ find . -type f -name .gitignore -print -delete
 
 echo '===== Fixing shebangs =====' 2>&1
 # Find executables with /usr/bin/env shebangs in the examples, and fix them.
-find examples -type f -perm /0111 |
-  while read -r fn
-  do
-    if head -n 1 "${fn}" | grep -E '^#!/usr/bin/env[[:blank:]]'
-    then
-      sed -r -i '1{s|^(#!/usr/bin/)env[[:blank:]]+([^[:blank:]]+)|\1\2|}' \
-          "${fn}"
-    fi
-  done
+find . -type f -perm /0111 -exec gawk \
+    '/^#!\/usr\/bin\/env[[:blank:]]/ { print FILENAME }; { nextfile }' \
+    '{}' '+' |
+  xargs -r sed -r -i '1{s|^(#!/usr/bin/)env[[:blank:]]+([^[:blank:]]+)|\1\2|}' \
 
 echo '===== Fixing line endings =====' 2>&1
 # Fix some CRNL line endings:
