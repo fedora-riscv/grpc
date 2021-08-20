@@ -88,8 +88,8 @@ Summary:        RPC library and framework
 #   - third_party/upb/third_party/lunit/
 #     * Removed in prep, since there is no obvious way to run the upb tests
 License:        ASL 2.0 and BSD
-URL:            https://www.%{name}.io
-%global forgeurl https://github.com/%{name}/%{name}/
+URL:            https://www.grpc.io
+%global forgeurl https://github.com/grpc/grpc/
 # Used only at build time (not a bundled library); see notes at definition of
 # gtest_version macro for explanation and justification.
 %global gtest_url https://github.com/google/googletest
@@ -98,15 +98,15 @@ Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
 Source1:        %{gtest_url}/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
 
 # Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
-Source100:      %{name}_cli.1
-Source101:      %{name}_cli-ls.1
-Source102:      %{name}_cli-call.1
-Source103:      %{name}_cli-type.1
-Source104:      %{name}_cli-parse.1
-Source105:      %{name}_cli-totext.1
-Source106:      %{name}_cli-tojson.1
-Source107:      %{name}_cli-tobinary.1
-Source108:      %{name}_cli-help.1
+Source100:      grpc_cli.1
+Source101:      grpc_cli-ls.1
+Source102:      grpc_cli-call.1
+Source103:      grpc_cli-type.1
+Source104:      grpc_cli-parse.1
+Source105:      grpc_cli-totext.1
+Source106:      grpc_cli-tojson.1
+Source107:      grpc_cli-tobinary.1
+Source108:      grpc_cli-help.1
 
 # ~~~~ C (core) and C++ (cpp) ~~~~
 
@@ -234,36 +234,36 @@ BuildRequires:  symlinks
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
 #
 # In fact, this may not be needed, since only testing code is patched.
-Patch0:         %{name}-1.39.0-system-crypto-policies.patch
+Patch0:         grpc-1.39.0-system-crypto-policies.patch
 # Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
 # option already provided upstream. See
 # https://github.com/grpc/grpc/issues/25559.
-Patch1:         %{name}-1.37.0-python-grpcio-use-system-abseil.patch
+Patch1:         grpc-1.37.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
-Patch2:         %{name}-1.36.4-python-grpcio_tests-fixture-super.patch
+Patch2:         grpc-1.36.4-python-grpcio_tests-fixture-super.patch
 # Skip tests requiring non-loopback network access when the
 # FEDORA_NO_NETWORK_TESTS environment variable is set.
-Patch3:         %{name}-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
+Patch3:         grpc-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
 # A handful of compression tests miss the compression ratio threshold. It seems
 # to be inconsistent which particular combinations fail in a particular test
 # run. It is not clear that this is a real problem. Any help in understanding
 # the actual cause well enough to fix this or usefully report it upstream is
 # welcome.
-Patch4:         %{name}-1.36.4-python-grpcio_tests-skip-compression-tests.patch
+Patch4:         grpc-1.36.4-python-grpcio_tests-skip-compression-tests.patch
 # The upstream requirement to link gtest/gmock from grpc_cli is spurious.
 # Remove it. We still have to build the core tests and link a test library
 # (libgrpc++_test_config.so…)
-Patch5:         %{name}-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
+Patch5:         grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # Fix confusion about path to python_wrapper.sh in httpcli/httpscli tests. I
 # suppose that the unpatched code must be correct for how upstream runs the
 # tests, somehow.
-Patch6:         %{name}-1.39.0-python_wrapper-path.patch
+Patch6:         grpc-1.39.0-python_wrapper-path.patch
 # Port Python 2 scripts used in core tests to Python 3
-Patch7:         %{name}-1.39.0-python2-test-scripts.patch
+Patch7:         grpc-1.39.0-python2-test-scripts.patch
 
-Requires:       %{name}-data = %{version}-%{release}
+Requires:       grpc-data = %{version}-%{release}
 
 # Upstream https://github.com/protocolbuffers/upb does not support building
 # with anything other than Bazel, and Bazel is not likely to make it into
@@ -680,7 +680,7 @@ echo '===== Fixing hard-coded C++ standard =====' 2>&1
 # the main C++ build, we can use CMAKE_CXX_STANDARD. For extensions, examples,
 # etc., we must patch.
 sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
-    setup.py %{name}.gyp Rakefile \
+    setup.py grpc.gyp Rakefile \
     examples/cpp/*/Makefile \
     examples/cpp/*/CMakeLists.txt \
     tools/run_tests/artifacts/artifact_targets.py \
@@ -821,8 +821,8 @@ echo '===== Building C (core) and C++ components =====' 2>&1
     -DgRPC_INSTALL_BINDIR:PATH=%{_bindir} \
     -DgRPC_INSTALL_LIBDIR:PATH=%{_libdir} \
     -DgRPC_INSTALL_INCLUDEDIR:PATH=%{_includedir} \
-    -DgRPC_INSTALL_CMAKEDIR:PATH=%{_libdir}/cmake/%{name} \
-    -DgRPC_INSTALL_SHAREDIR:PATH=%{_datadir}/%{name} \
+    -DgRPC_INSTALL_CMAKEDIR:PATH=%{_libdir}/cmake/grpc \
+    -DgRPC_INSTALL_SHAREDIR:PATH=%{_datadir}/grpc \
     -DgRPC_BUILD_TESTS:BOOL=%{?with_core_tests:ON}%{?!with_core_tests:OFF} \
     -DgRPC_BUILD_CODEGEN:BOOL=ON \
     -DgRPC_BUILD_CSHARP_EXT:BOOL=ON \
@@ -895,12 +895,12 @@ pushd "tools/distrib/python/grpcio_tools/" >/dev/null
 # When copying more things in here, make sure the subpackage License field
 # stays correct. We need copies, not symlinks, so that the “graft” in
 # MANIFEST.in works.
-mkdir -p %{name}_root/src
+mkdir -p grpc_root/src
 for srcdir in compiler
 do
-  cp -rp "../../../../src/${srcdir}" "%{name}_root/src/"
+  cp -rp "../../../../src/${srcdir}" "grpc_root/src/"
 done
-cp -rp '../../../../include' '%{name}_root/'
+cp -rp '../../../../include' 'grpc_root/'
 # We must set GRPC_PYTHON_CFLAGS and GRPC_PYTHON_LDFLAGS again; grpcio_tools
 # does not have the same default upstream flags as grpcio does, and it needs to
 # link the protobuf compiler library.
@@ -948,16 +948,16 @@ rm -vrf doc/build/.buildinfo doc/build/.doctrees
 
 %if %{with core_tests}
 # For some reason, grpc_cli is not installed. Do it manually.
-install -t '%{buildroot}%{_bindir}' -p -D '%{_vpath_builddir}/%{name}_cli'
+install -t '%{buildroot}%{_bindir}' -p -D '%{_vpath_builddir}/grpc_cli'
 # grpc_cli build does not respect CMAKE_INSTALL_RPATH
 # https://github.com/grpc/grpc/issues/25176
-chrpath --delete '%{buildroot}%{_bindir}/%{name}_cli'
+chrpath --delete '%{buildroot}%{_bindir}/grpc_cli'
 
 # This library is also required for grpc_cli; it is built as part of the test
 # code.
 install -t '%{buildroot}%{_libdir}' -p \
-    %{_vpath_builddir}/lib%{name}++_test_config.so.*
-chrpath --delete '%{buildroot}%{_libdir}/'lib%{name}++_test_config.so.*
+    %{_vpath_builddir}/libgrpc++_test_config.so.*
+chrpath --delete '%{buildroot}%{_libdir}/'libgrpc++_test_config.so.*
 
 install -d '%{buildroot}/%{_mandir}/man1'
 install -t '%{buildroot}/%{_mandir}/man1' -p -m 0644 \
@@ -968,7 +968,7 @@ install -t '%{buildroot}/%{_mandir}/man1' -p -m 0644 \
 # Remove any static libraries that may have been installed against our wishes
 find %{buildroot} -type f -name '*.a' -print -delete
 # Fix wrong permissions on installed headers
-find %{buildroot}%{_includedir}/%{name}* -type f -name '*.h' -perm /0111 \
+find %{buildroot}%{_includedir}/grpc* -type f -name '*.h' -perm /0111 \
     -execdir chmod -v a-x '{}' '+'
 
 # ~~~~ Python ~~~~
@@ -1721,15 +1721,15 @@ fi
 %license LICENSE NOTICE.txt
 %{_libdir}/libaddress_sorting.so.%{c_so_version}*
 %{_libdir}/libgpr.so.%{c_so_version}*
-%{_libdir}/lib%{name}.so.%{c_so_version}*
-%{_libdir}/lib%{name}_unsecure.so.%{c_so_version}*
+%{_libdir}/libgrpc.so.%{c_so_version}*
+%{_libdir}/libgrpc_unsecure.so.%{c_so_version}*
 %{_libdir}/libupb.so.%{c_so_version}*
 
 
 %files data
 %license LICENSE NOTICE.txt
-%dir %{_datadir}/%{name}
-%{_datadir}/%{name}/roots.pem
+%dir %{_datadir}/grpc
+%{_datadir}/grpc/roots.pem
 
 
 %files doc
@@ -1738,22 +1738,22 @@ fi
 
 
 %files cpp
-%{_libdir}/lib%{name}++.so.%{cpp_so_version}*
-%{_libdir}/lib%{name}++_alts.so.%{cpp_so_version}*
-%{_libdir}/lib%{name}++_error_details.so.%{cpp_so_version}*
-%{_libdir}/lib%{name}++_reflection.so.%{cpp_so_version}*
-%{_libdir}/lib%{name}++_unsecure.so.%{cpp_so_version}*
-%{_libdir}/lib%{name}_plugin_support.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++_alts.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++_error_details.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++_reflection.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++_unsecure.so.%{cpp_so_version}*
+%{_libdir}/libgrpc_plugin_support.so.%{cpp_so_version}*
 
-%{_libdir}/lib%{name}pp_channelz.so.%{cpp_so_version}*
+%{_libdir}/libgrpcpp_channelz.so.%{cpp_so_version}*
 
 
 %if %{with core_tests}
 %files cli
-%{_bindir}/%{name}_cli
-%{_libdir}/lib%{name}++_test_config.so.%{cpp_so_version}*
-%{_mandir}/man1/%{name}_cli.1*
-%{_mandir}/man1/%{name}_cli-*.1*
+%{_bindir}/grpc_cli
+%{_libdir}/libgrpc++_test_config.so.%{cpp_so_version}*
+%{_mandir}/man1/grpc_cli.1*
+%{_mandir}/man1/grpc_cli-*.1*
 %endif
 
 
@@ -1761,33 +1761,33 @@ fi
 # These are for program use and do not offer a CLI for the end user, so they
 # should really be in %%{_libexecdir}; however, too many downstream users
 # expect them in $PATH to change this for the time being.
-%{_bindir}/%{name}_*_plugin
+%{_bindir}/grpc_*_plugin
 
 
 %files devel
 %{_libdir}/libaddress_sorting.so
 %{_libdir}/libgpr.so
-%{_libdir}/lib%{name}.so
-%{_libdir}/lib%{name}_unsecure.so
+%{_libdir}/libgrpc.so
+%{_libdir}/libgrpc_unsecure.so
 %{_libdir}/libupb.so
-%{_includedir}/%{name}
+%{_includedir}/grpc
 %{_libdir}/pkgconfig/gpr.pc
-%{_libdir}/pkgconfig/%{name}.pc
-%{_libdir}/pkgconfig/%{name}_unsecure.pc
-%{_libdir}/cmake/%{name}
+%{_libdir}/pkgconfig/grpc.pc
+%{_libdir}/pkgconfig/grpc_unsecure.pc
+%{_libdir}/cmake/grpc
 
-%{_libdir}/lib%{name}++.so
-%{_libdir}/lib%{name}++_alts.so
-%{_libdir}/lib%{name}++_error_details.so
-%{_libdir}/lib%{name}++_reflection.so
-%{_libdir}/lib%{name}++_unsecure.so
-%{_libdir}/lib%{name}_plugin_support.so
-%{_includedir}/%{name}++
-%{_libdir}/pkgconfig/%{name}++.pc
-%{_libdir}/pkgconfig/%{name}++_unsecure.pc
+%{_libdir}/libgrpc++.so
+%{_libdir}/libgrpc++_alts.so
+%{_libdir}/libgrpc++_error_details.so
+%{_libdir}/libgrpc++_reflection.so
+%{_libdir}/libgrpc++_unsecure.so
+%{_libdir}/libgrpc_plugin_support.so
+%{_includedir}/grpc++
+%{_libdir}/pkgconfig/grpc++.pc
+%{_libdir}/pkgconfig/grpc++_unsecure.pc
 
-%{_libdir}/lib%{name}pp_channelz.so
-%{_includedir}/%{name}pp
+%{_libdir}/libgrpcpp_channelz.so
+%{_includedir}/grpcpp
 
 
 %files -n python3-grpcio
