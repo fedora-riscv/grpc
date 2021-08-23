@@ -1,15 +1,14 @@
 # We need to use C++17 to link against the system abseil-cpp, or we get linker
-# errors. Besides, we should be compiling C++ libraries with the ABI
-# corresponding to the default C++ standard on the system, since different C++
-# versions are not ABI-compatible.
+# errors.
 %global cpp_std 17
 
-# However, gtest in Fedora uses the C++11 ABI, so we get linker errors building
-# the tests if we use C++17. We must therefore bundle a copy of gtest in the
-# source RPM rather than using the system copy. This is to be discouraged, but
-# there is no alternative in this case. It is not treated as a bundled library
-# because it is used only at build time, and contributes nothing to the
-# installed files. We take measures to verify this in %%check.
+# However, we also get linker errors building the tests if we link against the
+# copy of gtest in Fedora (compiled with C++11). The exact root cause is not
+# quite clear. We must therefore bundle a copy of gtest in the source RPM
+# rather than using the system copy. This is to be discouraged, but there is no
+# alternative in this case. It is not treated as a bundled library because it
+# is used only at build time, and contributes nothing to the installed files.
+# We take measures to verify this in %%check.
 %global gtest_version 1.11.0
 %bcond_with system_gtest
 
