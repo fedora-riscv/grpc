@@ -1,16 +1,16 @@
-diff -Naur --no-dereference grpc-1.39.0-original/test/core/http/test_server.py grpc-1.39.0/test/core/http/test_server.py
---- grpc-1.39.0-original/test/core/http/test_server.py	2021-07-20 18:39:39.000000000 -0400
-+++ grpc-1.39.0/test/core/http/test_server.py	2021-08-02 15:53:10.756821227 -0400
-@@ -15,7 +15,7 @@
- """Server for httpcli_test"""
- 
- import argparse
--import BaseHTTPServer
-+import http.server
- import os
+diff -Naur --no-dereference grpc-1.40.0-original/test/core/http/test_server.py grpc-1.40.0/test/core/http/test_server.py
+--- grpc-1.40.0-original/test/core/http/test_server.py	2021-09-03 19:20:52.000000000 -0400
++++ grpc-1.40.0/test/core/http/test_server.py	2021-09-09 11:34:26.772184779 -0400
+@@ -19,7 +19,7 @@
  import ssl
  import sys
-@@ -26,7 +26,7 @@
+ 
+-import BaseHTTPServer
++import http.server
+ 
+ _PEM = os.path.abspath(
+     os.path.join(os.path.dirname(sys.argv[0]), '../../..',
+@@ -27,7 +27,7 @@
  _KEY = os.path.abspath(
      os.path.join(os.path.dirname(sys.argv[0]), '../../..',
                   'src/core/tsi/test_creds/server1.key'))
@@ -19,7 +19,7 @@ diff -Naur --no-dereference grpc-1.39.0-original/test/core/http/test_server.py g
  open(_PEM).close()
  
  argp = argparse.ArgumentParser(description='Server for httpcli_test')
-@@ -34,29 +34,29 @@
+@@ -35,29 +35,29 @@
  argp.add_argument('-s', '--ssl', default=False, action='store_true')
  args = argp.parse_args()
  
@@ -55,9 +55,9 @@ diff -Naur --no-dereference grpc-1.39.0-original/test/core/http/test_server.py g
  if args.ssl:
      httpd.socket = ssl.wrap_socket(httpd.socket,
                                     certfile=_PEM,
-diff -Naur --no-dereference grpc-1.39.0-original/tools/distrib/python_wrapper.sh grpc-1.39.0/tools/distrib/python_wrapper.sh
---- grpc-1.39.0-original/tools/distrib/python_wrapper.sh	2021-07-20 18:39:39.000000000 -0400
-+++ grpc-1.39.0/tools/distrib/python_wrapper.sh	2021-08-02 13:04:51.034495917 -0400
+diff -Naur --no-dereference grpc-1.40.0-original/tools/distrib/python_wrapper.sh grpc-1.40.0/tools/distrib/python_wrapper.sh
+--- grpc-1.40.0-original/tools/distrib/python_wrapper.sh	2021-09-03 19:20:52.000000000 -0400
++++ grpc-1.40.0/tools/distrib/python_wrapper.sh	2021-09-09 11:33:47.641824138 -0400
 @@ -14,7 +14,7 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.

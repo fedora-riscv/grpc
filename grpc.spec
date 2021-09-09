@@ -40,16 +40,16 @@
 %endif
 
 Name:           grpc
-Version:        1.39.1
+Version:        1.40.0
 Release:        %autorelease
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
 %global c_so_version 18
 # CMakeLists.txt: gRPC_CPP_SOVERSION
-%global cpp_so_version 1.39
+%global cpp_so_version 1.40
 # CMakeLists.txt: gRPC_CSHARP_SOVERSION
-%global csharp_so_version 2.39
+%global csharp_so_version 2.40
 # See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
 # regarding unusual SOVERSION style (not a single number).
 
@@ -237,14 +237,14 @@ Patch0:         grpc-1.39.0-system-crypto-policies.patch
 # Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
 # option already provided upstream. See
 # https://github.com/grpc/grpc/issues/25559.
-Patch1:         grpc-1.37.0-python-grpcio-use-system-abseil.patch
+Patch1:         grpc-1.40.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
 Patch2:         grpc-1.36.4-python-grpcio_tests-fixture-super.patch
 # Skip tests requiring non-loopback network access when the
 # FEDORA_NO_NETWORK_TESTS environment variable is set.
-Patch3:         grpc-1.36.4-python-grpcio_tests-make-network-tests-skippable.patch
+Patch3:         grpc-1.40.0-python-grpcio_tests-make-network-tests-skippable.patch
 # A handful of compression tests miss the compression ratio threshold. It seems
 # to be inconsistent which particular combinations fail in a particular test
 # run. It is not clear that this is a real problem. Any help in understanding
@@ -260,7 +260,7 @@ Patch5:         grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # tests, somehow.
 Patch6:         grpc-1.39.0-python_wrapper-path.patch
 # Port Python 2 scripts used in core tests to Python 3
-Patch7:         grpc-1.39.0-python2-test-scripts.patch
+Patch7:         grpc-1.40.0-python2-test-scripts.patch
 # Fix compatibility with breaking changes in google-benchmark 1.6.0
 #
 # This will not be sent upstream since it is impractical to make a patch
