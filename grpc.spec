@@ -261,6 +261,12 @@ Patch5:         grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 Patch6:         grpc-1.39.0-python_wrapper-path.patch
 # Port Python 2 scripts used in core tests to Python 3
 Patch7:         grpc-1.39.0-python2-test-scripts.patch
+# Fix compatibility with breaking changes in google-benchmark 1.6.0
+#
+# This will not be sent upstream since it is impractical to make a patch
+# compatible with both 1.6.0 and 1.5.0, and upstream has not yet updated to
+# 1.6.0.
+Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
