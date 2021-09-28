@@ -27,9 +27,25 @@
 # Several of these still fail. We should try to work toward re-enabling this.
 %bcond_with python_gevent_tests
 
+# HTML documention generated with Doxygen and/or Sphinx is not suitable for
+# packaging due to a minified JavaScript bundle inserted by
+# Doxygen/Sphinx/Sphinx themes itself. See discussion at
+# https://bugzilla.redhat.com/show_bug.cgi?id=2006555.
+#
+# Normally we could consider enabling the Doxygen PDF documentation as a lesser
+# substitute, but (after enabling it and working around some Unicode characters
+# in the Markdown input) we get:
+#
+#   ! TeX capacity exceeded, sorry [main memory size=6000000].
+#
+# A similar situation applies to the Sphinx-generated HTML documentation for
+# Python, except that we have not even tried to render it as a PDF because it
+# is too unpleasant to try if we already cannot package the Doxygen-generated
+# documentation. Instead, we have just dropped all documentation.
+
 Name:           grpc
 Version:        1.26.0
-Release:        13%{?dist}
+Release:        14%{?dist}
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
@@ -43,11 +59,11 @@ Summary:        RPC library and framework
 #
 # BSD:
 #   - third_party/upb/, except third_party/upb/third_party/lunit/
-#     * Potentially linked into any compiled subpackage (but not -doc,
-#       pure-Python subpackages, etc.)
+#     * Potentially linked into any compiled subpackage (but not pure-Python
+#       subpackages, etc.)
 #   - third_party/address_sorting/
-#     * Potentially linked into any compiled subpackage (but not -doc,
-#       pure-Python subpackages, etc.)
+#     * Potentially linked into any compiled subpackage (but not pure-Python
+#       subpackages, etc.)
 #
 # as well as the following which do not contribute to the base License field or
 # any subpackage License field for the reasons noted:
@@ -115,7 +131,7 @@ export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL='True'
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB='True'
 export GRPC_PYTHON_BUILD_SYSTEM_CARES='True'
 export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY='True'
-export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='True'
+export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='False'
 }
 
 BuildRequires:  python3-devel
@@ -131,8 +147,8 @@ BuildRequires:  python3dist(gevent)
 # https://bugzilla.redhat.com/show_bug.cgi?id=1893533
 %global _lto_cflags %{nil}
 
-# Reference documentation
-BuildRequires:  doxygen
+# Reference documentation, which is *not* enabled
+# BuildRequires:  doxygen
 
 BuildRequires:  ca-certificates
 # For converting absolute symlinks in the buildroot to relative ones
@@ -273,7 +289,8 @@ Provides:       python-grpcio-status-doc = %{version}-%{release}
 Provides:       python-grpcio-testing-doc = %{version}-%{release}
 
 %description doc
-Documentation and examples for gRPC, including documentation for the following:
+Documentation and examples for gRPC, including Markdown documentation sources
+for the following:
 
   • C (core)
     ○ API
@@ -291,6 +308,8 @@ Documentation and examples for gRPC, including documentation for the following:
     ○ grpcio_reflection
     ○ grpcio_status
     ○ grpcio_testing
+
+For rendered HTML documentation, please see https://grpc.io/docs/.
 
 
 %package cpp
@@ -475,9 +494,9 @@ sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 # Fix some of the weirdest accidentally-executable files
 find . -type f -name '*.md' -perm /0111 -execdir chmod -v a-x '{}' '+'
 
-# Allow building Python documentation with a newer Sphinx; the upstream version
-# requirement is needlessly strict. (It is fine for upstream’s own purposes, as
-# they are happy to build documentation with a pinned old version.)
+# Allow a newer Sphinx; the upstream version requirement is needlessly strict.
+# (It is fine for upstream’s own purposes, as they are happy to build
+# documentation with a pinned old version.)
 sed -r -i "s/('Sphinx)~=.*'/\1'/" setup.py
 
 # Remove unused sources that have licenses not in the License field, to ensure
@@ -616,10 +635,9 @@ sed -r -i \
 
 # ~~~~ Python ~~~~
 
-# Since we will need all of the Python packages for the documentation build,
-# and there are some other interdependencies (e.g., many have setup_requires:
-# grpcio-tools), we do a temporary install of the built packages into a local
-# directory, and add it to the PYTHONPATH.
+# Since there are some interdependencies in the Python packages (e.g., many
+# have setup_requires: grpcio-tools), we do temporary installs of built
+# packages into a local directory as needed, and add it to the PYTHONPATH.
 PYROOT="${PWD}/%{_vpath_builddir}/pyroot"
 if [ -n "${PYTHONPATH-}" ]; then PYTHONPATH="${PYTHONPATH}:"; fi
 PYTHONPATH="${PYTHONPATH-}${PYROOT}%{python3_sitelib}"
@@ -683,13 +701,6 @@ do
       -O1 --skip-build --root "${PYROOT}"
   popd >/dev/null
 done
-
-# ~~ documentation ~~
-# Doxygen (reference: C/core, C++, objc)
-./tools/doxygen/run_doxygen.sh
-# Sphinx (Python)
-%{__python3} %{py_setup} %{?py_setup_args} doc
-rm -vrf doc/build/.buildinfo doc/build/.doctrees
 
 
 %install
@@ -765,9 +776,7 @@ find '%{buildroot}' -type f -name 'roots.pem' |
 # ~~ documentation and examples ~~
 
 install -D -t '%{buildroot}%{_pkgdocdir}' -m 0644 -p AUTHORS *.md
-cp -rp doc/ref examples '%{buildroot}%{_pkgdocdir}'
-install -d '%{buildroot}%{_pkgdocdir}/python'
-cp -rp doc/build '%{buildroot}%{_pkgdocdir}/python/html'
+cp -rvp doc examples '%{buildroot}%{_pkgdocdir}'
 
 
 %check
@@ -1124,6 +1133,9 @@ fi
 
 
 %changelog
+* Wed Sep 29 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-14
+- Drop HTML documentation
+
 * Tue Mar 23 2021 Benjamin A. Beasley <code@musicinmybrain.net> - 1.26.0-13
 - General:
   * Replace * with • in descriptions
