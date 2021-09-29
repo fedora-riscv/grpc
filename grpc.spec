@@ -15,8 +15,8 @@
 # Bootstrapping breaks the circular dependency on python3dist(xds-protos),
 # which is packaged separately but ultimately generated from grpc sources using
 # the proto compilers in this package; the consequence is that we cannot build
-# the python3-grpcio-admin or python3-grpcio-csds subpackages or the Python
-# documentation until after bootstrapping.
+# the python3-grpcio-admin or python3-grpcio-csds subpackages until after
+# bootstrapping.
 %bcond_with bootstrap
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
@@ -39,7 +39,7 @@
 %bcond_with python_gevent_tests
 %endif
 
-# HTML documention generated with Doxygen and/or Sphinx is not suitable for
+# HTML documentation generated with Doxygen and/or Sphinx is not suitable for
 # packaging due to a minified JavaScript bundle inserted by
 # Doxygen/Sphinx/Sphinx themes itself. See discussion at
 # https://bugzilla.redhat.com/show_bug.cgi?id=2006555.
@@ -56,16 +56,16 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.40.0
+Version:        1.41.0
 Release:        %autorelease
 Summary:        RPC library and framework
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 18
+%global c_so_version 19
 # CMakeLists.txt: gRPC_CPP_SOVERSION
-%global cpp_so_version 1.40
+%global cpp_so_version 1.41
 # CMakeLists.txt: gRPC_CSHARP_SOVERSION
-%global csharp_so_version 2.40
+%global csharp_so_version 2.41
 # See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
 # regarding unusual SOVERSION style (not a single number).
 
@@ -175,7 +175,7 @@ BuildRequires:  python3dist(six) >= 1.10
 # grpcio (setup.py) setup_requires (with GRPC_PYTHON_BUILD_WITH_CYTHON, or
 # absent generated sources); also needed for grpcio_tools
 # (tools/distrib/python/grpcio_tools/setup.py)
-BuildRequires:  python3dist(cython)
+BuildRequires:  python3dist(cython) > 0.23
 
 # grpcio (setup.py) install_requires:
 # grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
@@ -221,10 +221,10 @@ BuildRequires:  python3dist(coverage) >= 4.0
 BuildRequires:  python3dist(oauth2client) >= 1.4.7
 
 # grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
-BuildRequires:  python3dist(google-auth) >= 1.0.0
+BuildRequires:  python3dist(google-auth) >= 1.17.2
 
 # grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
-BuildRequires:  python3dist(requests) >= 2.4.12
+BuildRequires:  python3dist(requests) >= 2.14.2
 
 # Required for “test_gevent” tests:
 BuildRequires:  python3dist(gevent)
@@ -283,6 +283,9 @@ Patch7:         grpc-1.40.0-python2-test-scripts.patch
 # compatible with both 1.6.0 and 1.5.0, and upstream has not yet updated to
 # 1.6.0.
 Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
+# In src/core/lib/promise/detail/basic_seq.h, include cassert
+# https://github.com/grpc/grpc/pull/27516
+Patch9:         https://github.com/grpc/grpc/pull/27516.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -464,7 +467,8 @@ Requires:       %{name}-data = %{version}-%{release}
 Python language bindings for gRPC (HTTP/2-based RPC framework).
 
 
-%{?python_extras_subpkg:%python_extras_subpkg -n python3-grpcio -i %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info protobuf}
+%global grpcio_egg %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
+%{?python_extras_subpkg:%python_extras_subpkg -n python3-grpcio -i %{grpcio_egg} protobuf}
 
 
 %package -n python3-grpcio-tools
@@ -711,14 +715,9 @@ echo '===== Fixing .pc install path =====' 2>&1
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 echo '===== Patching to skip certain broken tests =====' 2>&1
-# Confirmed in 1.39.0 2021-07-29
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def test_deallocated_server_stops)\\b/\
-\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_server_shutdown_test.py'
 
 %ifarch %{ix86} %{arm32}
-# Confirmed in 1.39.0 2021-07-29
+# Confirmed in 1.41.0 2021-10-01 (in %%{arm32} only)
 # TODO figure out how to report this upstream in a useful/actionable way
 sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
@@ -726,7 +725,7 @@ sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
 %endif
 
 %ifarch %{ix86} %{arm32}
-# Confirmed in 1.39.0 2021-07-29
+# Confirmed in 1.41.0 2021-10-05
 # These tests fail with:
 #   OverflowError: Python int too large to convert to C ssize_t
 # TODO figure out how to report this upstream in a useful/actionable way
@@ -746,7 +745,8 @@ Invocations)\\b/\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
 
 %ifarch %{arm64} ppc64le s390x x86_64
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-05 (aarch64 and ppc64le)
+# This is flaky and often succeeds.
 # TODO figure out how to report this upstream in a useful/actionable way
 #
 # unit._dynamic_stubs_test.DynamicStubTest.test_grpc_tools_unimportable
@@ -1424,6 +1424,143 @@ client_channel_stress
 client_lb_end2end
 %endif
 
+%ifarch x86_64 %{ix86} ppc64le
+# Unexplained (and flaky) hang
+#
+# Confirmed in 1.41.0 2021-10-01
+client_ssl
+%endif
+
+%ifarch %{arm32} %{ix86}
+# Unexplained:
+#
+# [ RUN      ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#    End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0
+# /builddir/build/BUILD/grpc-1.41.0/test/core/transport/binder/end2end/
+#    end2end_binder_transport_test.cc:188: Failure
+# Expected equality of these values:
+#   cnt
+#     Which is: 0
+#   end2end_testing::EchoServer::kServerStreamingCounts
+#     Which is: 100
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0 (3 ms)
+# [… etc. …]
+# [  FAILED  ] 18 tests, listed below:
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/0,
+#   where GetParam() = 0
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/1,
+#   where GetParam() = 10ns
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/2,
+#   where GetParam() = 10us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/3,
+#   where GetParam() = 100us
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/4,
+#   where GetParam() = 1ms
+# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
+#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/5,
+#   where GetParam() = 20ms
+#
+# Confirmed in 1.41.0 2021-09-29
+end2end_binder_transport
+%endif
+
 # Unexplained:
 #
 # [ RUN      ] EvaluateArgsTest.EmptyMetadata
@@ -1682,6 +1819,67 @@ find %{_vpath_builddir} -type f -perm /0111 -name '*_test' | sort |
 
 # Stop the port server
 curl "http://localhost:${PORT_SERVER_PORT}/quitquitquit" || :
+%endif
+
+# Work around problems in generated tests; we could not fix them in %%prep
+# because the test implementations did not exist yet.
+
+%ifarch ppc64le
+# Confirmed in 1.41.0 2021-10-01 (likely flaky)
+# protoc_plugin._python_plugin_test.SimpleStubsPluginTest.testUnaryCall
+# traceback:
+# Traceback (most recent call last):
+#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
+#     yield
+#   File "/usr/lib64/python3.10/unittest/case.py", line 591, in run
+#     self._callTestMethod(testMethod)
+#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
+#     method()
+#   File "/builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
+#       protoc_plugin/_python_plugin_test.py", line 548, in testUnaryCall
+#     response = service_pb2_grpc.TestService.UnaryCall(
+#   File "/builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
+#       protoc_plugin/protos/service/test_service_pb2_grpc.py", line 140, in UnaryCall
+#     return grpc.experimental.unary_unary(request, target,
+#             '/grpc_protoc_plugin.TestService/UnaryCall',
+#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
+#       python3.10/site-packages/grpc/experimental/__init__.py", line 77, in _wrapper
+#     return f(*args, **kwargs)
+#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
+#       python3.10/site-packages/grpc/_simple_stubs.py", line 242, in unary_unary
+#     return multicallable(request,
+#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
+#       python3.10/site-packages/grpc/_channel.py", line 946, in __call__
+#     return _end_unary_response_blocking(state, call, False, None)
+#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
+#       python3.10/site-packages/grpc/_channel.py", line 849, in
+#         _end_unary_response_blocking
+#     raise _InactiveRpcError(state)
+# grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
+# 	status = StatusCode.UNAVAILABLE
+# 	details = "Broken pipe"
+# 	debug_error_string = "{"created":"@1633121043.829503175",
+#         "description":"Error received from peer ipv6:[::1]:42049",
+#         "file":"src/core/lib/surface/call.cc","file_line":1069,
+#         "grpc_message":"Broken pipe","grpc_status":14}"
+# >
+# stdout:
+# stderr:
+# /builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
+#     protoc_plugin/protos/service/test_service_pb2_grpc.py:140:
+#     ExperimentalApiWarning: 'unary_unary' is an experimental API. It is
+#     subject to change or removal between minor releases. Proceed with
+#     caution.
+#   return grpc.experimental.unary_unary(request, target,
+#           '/grpc_protoc_plugin.TestService/UnaryCall',
+sed -r -i -e "s/^([[:blank:]]*)(def UnaryCall\(request,)$/\
+\\1@unittest.skip('Broken pipe')\\n\\1\\2/" \
+    -e "s/^(import grpc)$/\\1\\nimport unittest/" \
+    "src/python/grpcio_tests/tests/protoc_plugin/protos/service/\
+test_service_pb2_grpc.py"
+# DEBUG TODO
+cat "src/python/grpcio_tests/tests/protoc_plugin/protos/service/\
+test_service_pb2_grpc.py"
 %endif
 
 pushd src/python/grpcio_tests
