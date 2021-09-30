@@ -464,6 +464,9 @@ Requires:       %{name}-data = %{version}-%{release}
 Python language bindings for gRPC (HTTP/2-based RPC framework).
 
 
+%{?python_extras_subpkg:%python_extras_subpkg -n python3-grpcio -i %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info protobuf}
+
+
 %package -n python3-grpcio-tools
 Summary:       Package for gRPC Python tools
 # License:        same as base package
