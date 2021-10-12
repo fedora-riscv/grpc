@@ -736,7 +736,7 @@ sed -r -i \
     'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
 %endif
 
-# Confirmed in 1.39.0 2021-08-19
+# Confirmed in 1.41.0 2021-10-08 (on aarch64 and s390x)
 # These tests can be flaky and may fail only sometimes. Failures have been seen
 # on all architectures.
 # TODO figure out how to report this upstream in a useful/actionable way
@@ -773,7 +773,8 @@ sed -r -i "s/^([[:blank:]]*)(class DynamicStubTest)\\b/\
 %endif
 
 %ifarch %{arm64} ppc64le s390x x86_64
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-05 (aarch64)
+# This is flaky and often succeeds.
 # TODO figure out how to report this upstream in a useful/actionable way
 #
 # unit._logging_test.LoggingTest.test_can_configure_logger
@@ -805,23 +806,11 @@ handler_found|logger_not_occupied))\\b/\
 %endif
 
 %ifarch %{ix86} %{arm32}
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-05
 # TODO figure out how to report this upstream in a useful/actionable way
 sed -r -i "s/^([[:blank:]]*)(def testCancelManyCalls)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_cython/_cancel_many_calls_test.py'
-%endif
-
-%ifarch %{arm64}
-# Confirmed in 1.39.0 2021-08-11
-# Some of these (at least testSuccessfulStreamRequestStreamResponse) may be
-# flaky and fail only occasionally.
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def test\
-(ConsumingSomeButNotAllStreamResponsesStreamRequest|\
-SuccessfulStreamRequestStreamResponse))\\b/\
-\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
 %endif
 
 
@@ -1081,7 +1070,7 @@ flaky_network
 #   "::1"
 # [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (0 ms)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-10
 address_sorting
 %endif
 
@@ -1105,7 +1094,7 @@ address_sorting
 #     @      0x3ff857b380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa27302730  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-10
 alts_crypt
 %endif
 
@@ -1114,7 +1103,7 @@ alts_crypt
 #
 # (aborted without output)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-10
 alts_crypter
 %endif
 
@@ -1151,7 +1140,7 @@ alts_crypter
 # E0811 15:43:02.072126233 2232783 test_config.cc:195]
 #   Timeout in waiting for gRPC shutdown
 #
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-10
 alts_concurrent_connectivity
 %endif
 
@@ -1160,7 +1149,7 @@ alts_concurrent_connectivity
 #
 # (aborted without output)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-10
 alts_frame_protector
 %endif
 
@@ -1187,7 +1176,7 @@ alts_frame_protector
 #     @      0x3ffa56b380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa1fa81d60  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 alts_grpc_record_protocol
 %endif
 
@@ -1214,7 +1203,7 @@ alts_grpc_record_protocol
 #     @      0x3ffbae3380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa07781d60  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-08
+# Confirmed in 1.41.0 2021-10-10
 alts_handshaker_client
 %endif
 
@@ -1223,7 +1212,7 @@ alts_handshaker_client
 #
 # (aborted without output)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 alts_iovec_record_protocol
 %endif
 
@@ -1239,7 +1228,7 @@ alts_iovec_record_protocol
 #     Which is: 0
 # [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions (0 ms)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 alts_util
 %endif
 
@@ -1267,7 +1256,7 @@ alts_util
 #     @      0x3ff8163380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa3d001c10  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 alts_zero_copy_grpc_protector
 %endif
 
@@ -1283,7 +1272,7 @@ alts_zero_copy_grpc_protector
 # *** SIGABRT received at time=1628532060 on cpu 0 ***
 # PC: @ 0xf7f9d559  (unknown)  __kernel_vsyscall
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 certificate_provider_store
 %endif
 
@@ -1300,7 +1289,7 @@ certificate_provider_store
 #     Which is: 4
 # [  FAILED  ] ChannelTracerTest.TestMultipleEviction (1 ms)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-10
 channel_trace
 %endif
 
@@ -1369,7 +1358,7 @@ channel_trace
 #     @ 0xb6418058  (unknown)  (unknown)
 #     @ 0xb63d0ddc  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-10
 client_channel_stress
 %endif
 
@@ -1421,14 +1410,9 @@ client_channel_stress
 #     @      0x3ff89c33732  (unknown)  __libc_start_call_main
 #     @      0x3ff89c3380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa189ac6a0  (unknown)  (unknown)
-client_lb_end2end
-%endif
-
-%ifarch x86_64 %{ix86} ppc64le
-# Unexplained (and flaky) hang
 #
-# Confirmed in 1.41.0 2021-10-01
-client_ssl
+# Confirmed in 1.41.0 2021-10-10
+client_lb_end2end
 %endif
 
 %ifarch %{arm32} %{ix86}
@@ -1579,7 +1563,7 @@ end2end_binder_transport
 #     @     0xffffac0ba0c4        272  __libc_start_call_main
 #     @     0xffffac0ba198  (unknown)  __libc_start_main@GLIBC_2.17
 #
-# Confirmed in 1.39.0 2021-08-04
+# Confirmed in 1.41.0 2021-10-10
 evaluate_args
 
 %ifarch x86_64 %{ix86}
@@ -1592,7 +1576,7 @@ evaluate_args
 # Expected: true
 # [  FAILED  ] ExamineStackTest.AbseilStackProvider (0 ms)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-10
 examine_stack
 %endif
 
@@ -1618,7 +1602,7 @@ examine_stack
 #     @      0x3ff9cdb380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa3fb83cd0  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-11
 goaway_server
 %endif
 
@@ -1630,7 +1614,7 @@ goaway_server
 # *** SIGABRT received at time=1628556696 on cpu 3 ***
 # PC: @ 0xf7fa9559  (unknown)  __kernel_vsyscall
 #
-# Confirmed in 1.39.0 2021-08-09
+# Confirmed in 1.41.0 2021-10-11
 grpc_tls_certificate_distributor
 %endif
 
@@ -1650,17 +1634,8 @@ grpc_tls_certificate_distributor
 # Expected: true
 # [  FAILED  ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet (4 ms)
 #
-# Confirmed in 1.39.0 2021-08-10
+# Confirmed in 1.41.0 2021-10-11
 grpc_tool
-
-# Bad assumption about which directory the tests are running in:
-#
-# E0802 01:16:33.084040928 3911182 subprocess_posix.cc:61]
-#   execv 'redhat-linux-build/../../test/core/http/python_wrapper.sh'
-#   failed: No such file or directory
-# E0802 01:16:39.086691950 3911178 httpcli_test.cc:52]
-#   assertion failed: response->status == 200
-# *** SIGABRT received at time=16278 66999 on cpu 1 ***
 
 # While we have fixed a couple of problems with these tests, including porting
 # the test server to Python 3, success still eludes us.
@@ -1672,7 +1647,7 @@ grpc_tool
 # PC: @     0x7fe44b4f2783  (unknown)  pthread_kill@@GLIBC_2.34
 #     @ ... and at least 1 more frames
 #
-# Confirmed in 1.39.0 2021-08-02
+# Confirmed in 1.41.0 2021-10-11
 httpcli
 httpscli
 
@@ -1683,7 +1658,7 @@ httpscli
 # Expected: (busy) <= (total), actual: 9034196912422118975 vs 3761728973136652623
 # [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
 #
-# Confirmed in 1.39.0 2021-08-10
+# Confirmed in 1.41.0 2021-10-11
 lb_get_cpu_stats
 %endif
 
@@ -1704,7 +1679,7 @@ lb_get_cpu_stats
 #     @      0x3ff81cb380e  (unknown)  __libc_start_main@GLIBC_2.2
 #     @      0x2aa18880ab0  (unknown)  (unknown)
 #
-# Confirmed in 1.39.0 2021-08-10
+# Confirmed in 1.41.0 2021-10-11
 murmur_hash
 %endif
 
@@ -1718,35 +1693,8 @@ murmur_hash
 # Expected: true
 # [  FAILED  ] StackTracerTest.Basic (1 ms)
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-11
 stack_tracer
-%endif
-
-%ifarch x86_64 %{ix86} %{arm64}
-# Unexplained hang.
-#
-# This may be flaky and sometimes succeed; this is known to be the case on
-# x86_64.
-#
-# mutex: 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 done 1.372237159 s
-# mutex try: 256 512 1024 2048 4096 8192 16384 32768 65536 131072 done 1.285748396 s
-# cv: 256 512 1024 2048 done 1.134636147 s
-# timedcv: 256 512 1024 done 1.925035489 s
-# queue: 256timeout: sending signal TERM to command 'redhat-linux-build/sync_test'
-# *** SIGTERM received at time=1627413101 on cpu 0 ***
-# PC: @     0xffff8299f8a8  (unknown)  syscall
-#     @     0xffff82896850  1732032480  (unknown)
-#     @     0xffff82d7b7bc        112  (unknown)
-#     @     0xffff8237ac44         48  AbslInternalPerThreadSemWait_lts_20210324
-#     @     0xffff8237e5c8        144  absl::lts_20210324::CondVar::WaitCommon()
-#     @     0xffff82ce82c4         64  gpr_cv_wait
-#     @     0xaaaae0ae2118        288  test()
-#     @     0xaaaae0ae1560         64  main
-#     @     0xffff828e10c4        272  __libc_start_call_main
-#     @     0xffff828e1198  (unknown)  __libc_start_main@GLIBC_2.17
-#
-# Confirmed in 1.39.0 2021-08-01
-sync
 %endif
 
 # Unexplained:
@@ -1762,7 +1710,7 @@ sync
 # PC: @     0x7ff236e4219c  (unknown)  __strlen_evex
 #     @ ... and at least 1 more frames
 #
-# Confirmed in 1.39.0 2021-08-05
+# Confirmed in 1.41.0 2021-10-12
 test_core_security_credentials
 
 # Unexplained:
@@ -1800,7 +1748,7 @@ test_core_security_credentials
 # PC: @     0x7f5984c2d19c  (unknown)  __strlen_evex
 #     @ ... and at least 1 more frames
 #
-# Confirmed in 1.39.0 2021-08-11
+# Confirmed in 1.41.0 2021-10-12
 xds_end2end
 
 EOF
@@ -1876,9 +1824,6 @@ sed -r -i -e "s/^([[:blank:]]*)(def UnaryCall\(request,)$/\
 \\1@unittest.skip('Broken pipe')\\n\\1\\2/" \
     -e "s/^(import grpc)$/\\1\\nimport unittest/" \
     "src/python/grpcio_tests/tests/protoc_plugin/protos/service/\
-test_service_pb2_grpc.py"
-# DEBUG TODO
-cat "src/python/grpcio_tests/tests/protoc_plugin/protos/service/\
 test_service_pb2_grpc.py"
 %endif
 
