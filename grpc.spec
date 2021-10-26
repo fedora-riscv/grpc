@@ -1804,9 +1804,9 @@ curl "http://localhost:${PORT_SERVER_PORT}/quitquitquit" || :
 #         _end_unary_response_blocking
 #     raise _InactiveRpcError(state)
 # grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
-# 	status = StatusCode.UNAVAILABLE
-# 	details = "Broken pipe"
-# 	debug_error_string = "{"created":"@1633121043.829503175",
+#       status = StatusCode.UNAVAILABLE
+#       details = "Broken pipe"
+#       debug_error_string = "{"created":"@1633121043.829503175",
 #         "description":"Error received from peer ipv6:[::1]:42049",
 #         "file":"src/core/lib/surface/call.cc","file_line":1069,
 #         "grpc_message":"Broken pipe","grpc_status":14}"
