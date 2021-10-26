@@ -451,6 +451,12 @@ Requires:       cmake(c-ares)
 # grpc.pc has -lz
 Requires:       pkgconfig(zlib)
 
+# Library name conflict for %%{_libdir}/libgpr.so MUST be removed per
+# guidelines, but until a plan can be devised, we make the conflict explicit.
+#
+# https://bugzilla.redhat.com/show_bug.cgi?id=2017576
+Conflicts:      libgpr
+
 %description devel
 Development headers and files for gRPC libraries (both C and C++).
 
