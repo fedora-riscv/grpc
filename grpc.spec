@@ -109,7 +109,7 @@ URL:            https://www.grpc.io
 # gtest_version macro for explanation and justification.
 %global gtest_url https://github.com/google/googletest
 %global gtest_archivename googletest-release-%{gtest_version}
-Source0:        %{forgeurl}/archive/v%{version}/%{name}-%{version}.tar.gz
+Source0:        %{forgeurl}/archive/v%{version}/grpc-%{version}.tar.gz
 Source1:        %{gtest_url}/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
 
 # Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
@@ -391,7 +391,7 @@ For rendered HTML documentation, please see https://grpc.io/docs/.
 %package cpp
 Summary:        C++ language bindings for gRPC
 # License:        same as base package
-Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       grpc%{?_isa} = %{version}-%{release}
 
 %description cpp
 C++ language bindings for gRPC.
@@ -400,7 +400,7 @@ C++ language bindings for gRPC.
 %package plugins
 Summary:        Protocol buffers compiler plugins for gRPC
 # License:        same as base package
-Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       grpc%{?_isa} = %{version}-%{release}
 Requires:       protobuf-compiler
 
 %description plugins
@@ -410,7 +410,7 @@ Plugins to the protocol buffers compiler to generate gRPC sources.
 %package cli
 Summary:        Command-line tool for gRPC
 # License:        same as base package
-Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       grpc%{?_isa} = %{version}-%{release}
 
 %description cli
 The command line tool can do the following things:
@@ -430,8 +430,8 @@ The command line tool can do the following things:
 %package devel
 Summary:        Development files for gRPC library
 # License:        same as base package
-Requires:       %{name}%{?_isa} = %{version}-%{release}
-Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
+Requires:       grpc%{?_isa} = %{version}-%{release}
+Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
 Requires:       cmake-filesystem
 
@@ -461,7 +461,7 @@ Summary:        Python language bindings for gRPC
 
 # Note that the Python package has no runtime dependency on the base C library;
 # everything it needs is bundled.
-Requires:       %{name}-data = %{version}-%{release}
+Requires:       grpc-data = %{version}-%{release}
 
 %description -n python3-grpcio
 Python language bindings for gRPC (HTTP/2-based RPC framework).
