@@ -433,8 +433,6 @@ Summary:        Development files for gRPC library
 Requires:       grpc%{?_isa} = %{version}-%{release}
 Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
-Requires:       cmake-filesystem
-
 # grpc/impl/codegen/port_platform.h includes linux/version.h
 Requires:       kernel-headers%{?_isa}
 # grpcpp/impl/codegen/config_protobuf.h includes google/protobuf/…
