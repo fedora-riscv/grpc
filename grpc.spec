@@ -288,10 +288,7 @@ Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
 Patch9:         https://github.com/grpc/grpc/pull/27516.patch
 # Minimal fix for invalid implicit absl::string_view(nullptr_t)
 # This fixes failure to compile on GCC 12.
-#
-# Some of the affected code has been removed in the latest upstream version;
-# the rest of the patch may be worth sending upstream if we can reproduce it on
-# the latest version.
+# https://github.com/grpc/grpc/pull/28589
 Patch10:        0001-Minimal-fix-for-invalid-implicit-absl-string_view-nu.patch
 
 Requires:       grpc-data = %{version}-%{release}
