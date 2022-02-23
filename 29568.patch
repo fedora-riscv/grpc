@@ -1,0 +1,29 @@
+From e78ef29524ba8b7e197c8fe3cc8012096c87b928 Mon Sep 17 00:00:00 2001
+From: "Benjamin A. Beasley" <code@musicinmybrain.net>
+Date: Tue, 3 May 2022 12:59:51 -0400
+Subject: [PATCH] Fix a segfault in client_lb_end2end_test
+
+In the SubchannelStreamClient constructor, do not initialize an
+absl::string_view with a null pointer; this leads to strlen() being
+called on the null pointer. Let the absl::string_view be initialized
+with the string literal "SubchannelStreamClient" in this case instead.
+
+Fixes #29567.
+---
+ .../ext/filters/client_channel/subchannel_stream_client.cc     | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/core/ext/filters/client_channel/subchannel_stream_client.cc b/src/core/ext/filters/client_channel/subchannel_stream_client.cc
+index a596e044568e..1079948bc3a4 100644
+--- a/src/core/ext/filters/client_channel/subchannel_stream_client.cc
++++ b/src/core/ext/filters/client_channel/subchannel_stream_client.cc
+@@ -50,7 +50,8 @@ SubchannelStreamClient::SubchannelStreamClient(
+       call_allocator_(
+           ResourceQuotaFromChannelArgs(connected_subchannel_->args())
+               ->memory_quota()
+-              ->CreateMemoryAllocator(tracer)),
++              ->CreateMemoryAllocator(
++                  (tracer != nullptr) ? tracer : "SubchannelStreamClient")),
+       event_handler_(std::move(event_handler)),
+       retry_backoff_(
+           BackOff::Options()

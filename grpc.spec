@@ -8,8 +8,10 @@
 # rather than using the system copy. This is to be discouraged, but there is no
 # alternative in this case. It is not treated as a bundled library because it
 # is used only at build time, and contributes nothing to the installed files.
-# We take measures to verify this in %%check.
-%global gtest_version 1.11.0
+# We take measures to verify this in %%check. As long as we are using our own
+# copy, we use the exact same version as upstream.
+%global gtest_commit 0e402173c97aea7a00749e825b194bfede4f2e45
+#global gtest_version 1.11.0
 %bcond_with system_gtest
 
 # Bootstrapping breaks the circular dependency on python3dist(xds-protos),
@@ -39,6 +41,12 @@
 %bcond_with python_gevent_tests
 %endif
 
+# Running core tests under valgrind may help debug crashes. This is mostly
+# ignored if the gdb build conditional is also set.
+%bcond_with valgrind
+# Running core tests under gdb may help debug crashes.
+%bcond_with gdb
+
 # HTML documentation generated with Doxygen and/or Sphinx is not suitable for
 # packaging due to a minified JavaScript bundle inserted by
 # Doxygen/Sphinx/Sphinx themes itself. See discussion at
@@ -56,26 +64,33 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.41.1
+Version:        1.46.1
 Release:        %autorelease
 Summary:        RPC library and framework
 
+%global srcversion %(echo '%{version}' | sed -r 's/~rc/-pre/')
+%global pyversion %(echo '%{version}' | tr -d '~')
+
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 19
+%global c_so_version 24
 # CMakeLists.txt: gRPC_CPP_SOVERSION
-%global cpp_so_version 1.41
-# CMakeLists.txt: gRPC_CSHARP_SOVERSION
-%global csharp_so_version 2.41
 # See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
-# regarding unusual SOVERSION style (not a single number).
+# regarding unusual C++ SOVERSION style (not a single number).
+%global cpp_so_version 1.46
 
 # The entire source is ASL 2.0 except the following:
 #
 # BSD:
-#   - third_party/upb/, except third_party/upb/third_party/lunit/
+#   - third_party/upb/, except third_party/upb/third_party/lunit/ and
+#     third_party/upb/third_party/utf8_range/
 #     * Potentially linked into any compiled subpackage (but not pure-Python
 #       subpackages, etc.)
 #   - third_party/address_sorting/
+#     * Potentially linked into any compiled subpackage (but not pure-Python
+#       subpackages, etc.)
+#
+# MIT:
+#   - third_party/upb/third_party/utf8_range
 #     * Potentially linked into any compiled subpackage (but not pure-Python
 #       subpackages, etc.)
 #
@@ -89,7 +104,7 @@ Summary:        RPC library and framework
 #   - src/android/test/interop/app/src/main/assets/roots.pem
 #     * Truncated to an empty file in prep
 # ISC:
-#   - src/boringssl/crypto_test_data.cc and src/boringssl/err_data.c
+#   - src/boringssl/boringssl_prefix_symbols.h
 #     * Removed in prep; not used when building with system OpenSSL
 # BSD:
 #   - src/objective-c/*.podspec and
@@ -102,15 +117,17 @@ Summary:        RPC library and framework
 #     * Removed in prep, since we build no containers
 #   - third_party/upb/third_party/lunit/
 #     * Removed in prep, since there is no obvious way to run the upb tests
-License:        ASL 2.0 and BSD
+License:        ASL 2.0 and BSD and MIT
 URL:            https://www.grpc.io
 %global forgeurl https://github.com/grpc/grpc/
 # Used only at build time (not a bundled library); see notes at definition of
-# gtest_version macro for explanation and justification.
+# gtest_commit/gtest_version macro for explanation and justification.
 %global gtest_url https://github.com/google/googletest
-%global gtest_archivename googletest-release-%{gtest_version}
-Source0:        %{forgeurl}/archive/v%{version}/grpc-%{version}.tar.gz
-Source1:        %{gtest_url}/archive/release-%{gtest_version}/%{gtest_archivename}.tar.gz
+%global gtest_archivename googletest-%{gtest_commit}
+#global gtest_archivename googletest-release-#{gtest_version}
+Source0:        %{forgeurl}/archive/v%{srcversion}/grpc-%{srcversion}.tar.gz
+Source1:        %{gtest_url}/archive/%{gtest_commit}/%{gtest_archivename}.tar.gz
+#Source1:        #{gtest_url}/archive/release-#{gtest_version}/#{gtest_archivename}.tar.gz
 
 # Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
 Source100:      grpc_cli.1
@@ -144,15 +161,18 @@ BuildRequires:  abseil-cpp-devel
 # Sets XXH_INCLUDE_ALL, which means xxhash is used as a header-only library
 BuildRequires:  pkgconfig(libxxhash)
 BuildRequires:  xxhash-static
-# Header-only C library, which we unbundle from the bundled copy of upb
-BuildRequires:  wyhash_final1-devel
-BuildRequires:  wyhash_final1-static
 
 %if %{with core_tests}
 BuildRequires:  cmake(benchmark)
 %if %{with system_gtest}
 BuildRequires:  cmake(gtest)
 BuildRequires:  pkgconfig(gmock)
+%endif
+%if %{with valgrind}
+BuildRequires:  valgrind
+%endif
+%if %{with gdb}
+BuildRequires:  gdb
 %endif
 %endif
 
@@ -193,12 +213,8 @@ BuildRequires:  python3dist(cython) > 0.23
 # grpcio_status (src/python/grpcio_status/setup.py) install_requires:
 # grpcio_testing (src/python/grpcio_testing/setup.py) install_requires:
 # grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
-BuildRequires:  python3dist(protobuf) >= 3.6.0
-# grpcio_tools (tools/distrib/python/grpcio_tools/setup.py) install_requires
-# also has:
-#   protobuf>=3.5.0.post1
-# which is written as
-#   python3dist(protobuf) >= 3.5^post1
+# grpcio_tools (tools/distrib/python/grpcio_tools/setup.py) install_requires:
+BuildRequires:  python3dist(protobuf) >= 3.12.0
 
 # grpcio_status (src/python/grpcio_status/setup.py) install_requires:
 BuildRequires:  python3dist(googleapis-common-protos) >= 1.5.5
@@ -226,8 +242,10 @@ BuildRequires:  python3dist(google-auth) >= 1.17.2
 # grpcio_tests (src/python/grpcio_tests/setup.py) install_requires:
 BuildRequires:  python3dist(requests) >= 2.14.2
 
+%if %{with python_gevent_tests}
 # Required for “test_gevent” tests:
 BuildRequires:  python3dist(gevent)
+%endif
 
 # For stopping the port server
 BuildRequires:  curl
@@ -249,47 +267,46 @@ BuildRequires:  symlinks
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/CryptoPolicies/#_cc_applications
 #
 # In fact, this may not be needed, since only testing code is patched.
-Patch0:         grpc-1.39.0-system-crypto-policies.patch
+Patch:          grpc-1.39.0-system-crypto-policies.patch
 # Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
 # option already provided upstream. See
 # https://github.com/grpc/grpc/issues/25559.
-Patch1:         grpc-1.40.0-python-grpcio-use-system-abseil.patch
+Patch:          grpc-1.40.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
-Patch2:         grpc-1.36.4-python-grpcio_tests-fixture-super.patch
+Patch:          grpc-1.36.4-python-grpcio_tests-fixture-super.patch
 # Skip tests requiring non-loopback network access when the
 # FEDORA_NO_NETWORK_TESTS environment variable is set.
-Patch3:         grpc-1.40.0-python-grpcio_tests-make-network-tests-skippable.patch
+Patch:          grpc-1.40.0-python-grpcio_tests-make-network-tests-skippable.patch
 # A handful of compression tests miss the compression ratio threshold. It seems
 # to be inconsistent which particular combinations fail in a particular test
 # run. It is not clear that this is a real problem. Any help in understanding
 # the actual cause well enough to fix this or usefully report it upstream is
 # welcome.
-Patch4:         grpc-1.36.4-python-grpcio_tests-skip-compression-tests.patch
+Patch:          grpc-1.36.4-python-grpcio_tests-skip-compression-tests.patch
 # The upstream requirement to link gtest/gmock from grpc_cli is spurious.
 # Remove it. We still have to build the core tests and link a test library
 # (libgrpc++_test_config.so…)
-Patch5:         grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
+Patch:          grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # Fix confusion about path to python_wrapper.sh in httpcli/httpscli tests. I
 # suppose that the unpatched code must be correct for how upstream runs the
 # tests, somehow.
-Patch6:         grpc-1.39.0-python_wrapper-path.patch
-# Port Python 2 scripts used in core tests to Python 3
-Patch7:         grpc-1.40.0-python2-test-scripts.patch
-# Fix compatibility with breaking changes in google-benchmark 1.6.0
+Patch:          grpc-1.45.0-python_wrapper-path.patch
+# Do not segfault when peer CN is absent
+Patch:          %{forgeurl}/pull/29359.patch
+# Fix a segfault in client_lb_end2end_test
 #
-# This will not be sent upstream since it is impractical to make a patch
-# compatible with both 1.6.0 and 1.5.0, and upstream has not yet updated to
-# 1.6.0.
-Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
-# In src/core/lib/promise/detail/basic_seq.h, include cassert
-# https://github.com/grpc/grpc/pull/27516
-Patch9:         https://github.com/grpc/grpc/pull/27516.patch
-# Minimal fix for invalid implicit absl::string_view(nullptr_t)
-# This fixes failure to compile on GCC 12.
-# https://github.com/grpc/grpc/pull/28589
-Patch10:        0001-Minimal-fix-for-invalid-implicit-absl-string_view-nu.patch
+# In the SubchannelStreamClient constructor, do not initialize an
+# absl::string_view with a null pointer; this lead to strlen() being
+# called on the null pointer. Let the absl::string_view be empty in this
+# case instead.
+#
+# Fixes #29567.
+#
+# “Segfault in client_lb_end2end_test due to absl::string_view(nullptr)”
+# https://github.com/grpc/grpc/issues/29567
+Patch:          %{forgeurl}/pull/29568.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -307,6 +324,12 @@ Requires:       grpc-data = %{version}-%{release}
 # be a problem if upb is ever packaged separately. We will cross that bridge if
 # we get there.
 Provides:       bundled(upb)
+# The bundled upb itself bundles https://github.com/cyb70289/utf8; we follow
+# upstream in styling this as “utf8_range”. It cannot reasonably be unbundled
+# because the original code is not structured for distribution as a library (it
+# does not even include header files). It is not clear which upstream commit
+# was used.
+Provides:       bundled(utf8_range)
 
 # Regarding third_party/address_sorting: this looks a bit like a bundled
 # library, but it is not. From a source file comment:
@@ -400,6 +423,7 @@ Requires:       grpc%{?_isa} = %{version}-%{release}
 Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
 Provides:       bundled(upb)
+Provides:       bundled(utf8_range)
 
 %description cpp
 C++ language bindings for gRPC.
@@ -414,6 +438,7 @@ Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 Requires:       protobuf-compiler
 
 Provides:       bundled(upb)
+Provides:       bundled(utf8_range)
 
 %description plugins
 Plugins to the protocol buffers compiler to generate gRPC sources.
@@ -426,6 +451,7 @@ Summary:        Command-line tool for gRPC
 Requires:       grpc%{?_isa} = %{version}-%{release}
 
 Provides:       bundled(upb)
+Provides:       bundled(utf8_range)
 
 %description cli
 The command line tool can do the following things:
@@ -479,12 +505,13 @@ Summary:        Python language bindings for gRPC
 Requires:       grpc-data = %{version}-%{release}
 
 Provides:       bundled(upb)
+Provides:       bundled(utf8_range)
 
 %description -n python3-grpcio
 Python language bindings for gRPC (HTTP/2-based RPC framework).
 
 
-%global grpcio_egg %{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
+%global grpcio_egg %{python3_sitearch}/grpcio-%{pyversion}-py%{python3_version}.egg-info
 %{?python_extras_subpkg:%python_extras_subpkg -n python3-grpcio -i %{grpcio_egg} protobuf}
 
 
@@ -493,6 +520,7 @@ Summary:       Package for gRPC Python tools
 # License:        same as base package
 
 Provides:       bundled(upb)
+Provides:       bundled(utf8_range)
 
 %description -n python3-grpcio-tools
 Package for gRPC Python tools.
@@ -613,7 +641,9 @@ Testing utilities for gRPC Python.
 
 
 %prep
-%autosetup -p1
+%autosetup -p1 -n grpc-%{srcversion}
+
+cp -p third_party/upb/third_party/utf8_range/LICENSE LICENSE-utf8_range
 
 echo '===== Patching grpcio_tools for system protobuf =====' 2>&1
 # Build python3-grpcio_tools against system protobuf packages instead of
@@ -634,7 +664,7 @@ sed -r -i \
 echo '===== Preparing gtest/gmock =====' 2>&1
 %if %{without system_gtest}
 # Copy in the needed gtest/gmock implementations.
-%setup -q -T -D -b 1
+%setup -q -T -D -b 1 -n grpc-%{srcversion}
 rm -rvf 'third_party/googletest'
 mv '../%{gtest_archivename}' 'third_party/googletest'
 %else
@@ -659,13 +689,6 @@ sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 '\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
 %endif
 
-echo '===== Removing bundled wyhash =====' 2>&1
-# Remove bundled wyhash (via upb); to avoid patching the build system, simply
-# use a symlink to find the system copy. This is sufficient since it is a
-# header-only library.
-rm -rvf third_party/upb/third_party/wyhash
-ln -s %{_includedir}/wyhash_final1/ third_party/upb/third_party/wyhash
-
 echo '===== Removing bundled xxhash =====' 2>&1
 # Remove bundled xxhash
 rm -rvf third_party/xxhash
@@ -686,7 +709,7 @@ echo '===== Removing selected unused sources =====' 2>&1
 # they are not accidentally used in the build. See the comment above the base
 # package License field for more details.
 rm -rfv \
-    src/boringssl/*.c src/boringssl/*.cc \
+    src/boringssl/boringssl_prefix_symbols.h \
     third_party/cares/ares_build.h \
     third_party/rake-compiler-dock \
     third_party/upb/third_party/lunit
@@ -720,7 +743,7 @@ echo '===== Fixing shebangs =====' 2>&1
 find . -type f -perm /0111 -exec gawk \
     '/^#!\/usr\/bin\/env[[:blank:]]/ { print FILENAME }; { nextfile }' \
     '{}' '+' |
-  xargs -r sed -r -i '1{s|^(#!/usr/bin/)env[[:blank:]]+([^[:blank:]]+)|\1\2|}' \
+  xargs -r sed -r -i '1{s|^(#!/usr/bin/)env[[:blank:]]+([^[:blank:]]+)|\1\2|}'
 
 echo '===== Fixing hard-coded C++ standard =====' 2>&1
 # We need to adjust the C++ standard to avoid abseil-related linker errors. For
@@ -737,77 +760,6 @@ echo '===== Fixing .pc install path =====' 2>&1
 # Fix the install path for .pc files
 # https://github.com/grpc/grpc/issues/25635
 sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
-
-echo '===== Patching to skip certain broken tests =====' 2>&1
-
-# Confirmed in 1.41.0 2021-10-08 (on aarch64 and s390x)
-# These tests can be flaky and may fail only sometimes. Failures have been seen
-# on all architectures.
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def testConcurrent(Blocking|Future)\
-Invocations)\\b/\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_rpc_part_2_test.py'
-
-%ifarch %{arm64} ppc64le s390x x86_64
-# Confirmed in 1.41.0 2021-10-05 (aarch64 and ppc64le)
-# This is flaky and often succeeds.
-# TODO figure out how to report this upstream in a useful/actionable way
-#
-# unit._dynamic_stubs_test.DynamicStubTest.test_grpc_tools_unimportable
-# traceback:
-# Traceback (most recent call last):
-#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
-#     yield
-#   File "/usr/lib64/python3.10/unittest/case.py", line 592, in run
-#     self._callTestMethod(testMethod)
-#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
-#     method()
-#   File
-#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py",
-#       line 136, in test_grpc_tools_unimportable
-#     _run_in_subprocess(_test_grpc_tools_unimportable)
-#   File
-#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py",
-#       line 80, in _run_in_subprocess
-#     assert proc.exitcode == 0, "Process exited with code {}".format(
-# AssertionError: Process exited with code 64
-sed -r -i "s/^([[:blank:]]*)(class DynamicStubTest)\\b/\
-\\1@unittest.skip('Child process exits with code 64')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_dynamic_stubs_test.py'
-%endif
-
-%ifarch %{arm64} ppc64le s390x x86_64
-# Confirmed in 1.41.0 2021-10-05 (aarch64)
-# This is flaky and often succeeds.
-# TODO figure out how to report this upstream in a useful/actionable way
-#
-# unit._logging_test.LoggingTest.test_can_configure_logger
-# traceback:
-# Traceback (most recent call last):
-#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
-#     yield
-#   File "/usr/lib64/python3.10/unittest/case.py", line 592, in run
-#     self._callTestMethod(testMethod)
-#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
-#     method()
-#   File
-#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_logging_test.py",
-#       line 66, in test_can_configure_logger
-#     self._verifyScriptSucceeds(script)
-#   File
-#       "/builddir/build/BUILD/grpc-1.39.0/src/python/grpcio_tests/tests/unit/_logging_test.py",
-#       line 91, in _verifyScriptSucceeds
-#     self.assertEqual(
-#   File "/usr/lib64/python3.10/unittest/case.py", line 839, in assertEqual
-#     assertion_func(first, second, msg=msg)
-#   File "/usr/lib64/python3.10/unittest/case.py", line 832, in _baseAssertEqual
-#     raise self.failureException(msg)
-# AssertionError: 0 != 64 : process failed with exit code 64 (stdout: b'', stderr: b'')
-sed -r -i "s/^([[:blank:]]*)(def test_(can_configure_logger|grpc_logger|\
-handler_found|logger_not_occupied))\\b/\
-\\1@unittest.skip('Child process exits with code 64')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_logging_test.py'
-%endif
 
 
 %build
@@ -947,8 +899,9 @@ chrpath --delete '%{buildroot}%{_bindir}/grpc_cli'
 # This library is also required for grpc_cli; it is built as part of the test
 # code.
 install -t '%{buildroot}%{_libdir}' -p \
-    %{_vpath_builddir}/libgrpc++_test_config.so.*
-chrpath --delete '%{buildroot}%{_libdir}/'libgrpc++_test_config.so.*
+    '%{_vpath_builddir}/libgrpc++_test_config.so.%{cpp_so_version}'
+chrpath --delete \
+    '%{buildroot}%{_libdir}/libgrpc++_test_config.so.%{cpp_so_version}'
 
 install -d '%{buildroot}/%{_mandir}/man1'
 install -t '%{buildroot}/%{_mandir}/man1' -p -m 0644 \
@@ -1068,19 +1021,19 @@ flaky_network
 # Unexplained:
 #
 # [ RUN      ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable
-# ../test/cpp/naming/address_sorting_test.cc:807: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/cpp/naming/address_sorting_test.cc:809: Failure
 # Expected equality of these values:
 #   source_addr_output->sin6_family
 #     Which is: 0
 #   10
-# ../test/cpp/naming/address_sorting_test.cc:817: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/cpp/naming/address_sorting_test.cc:819: Failure
 # Expected equality of these values:
 #   source_addr_str
 #     Which is: "::"
 #   "::1"
-# [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (0 ms)
+# [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (2 ms)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 address_sorting
 %endif
 
@@ -1088,23 +1041,23 @@ address_sorting
 # Unexplained:
 #
 # Status is not ok: Setting authenticated associated data failed
-# E0805 21:01:40.415152384 1888289 aes_gcm_test.cc:77]         assertion failed: status == GRPC_STATUS_OK
-# *** SIGABRT received at time=1628197300 on cpu 1 ***
-# PC: @      0x3ff8581ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff85701524  (unknown)  (unknown)
-#     @      0x3ff85701790  (unknown)  (unknown)
-#     @      0x3ff862e3b78  (unknown)  (unknown)
-#     @      0x3ff8581ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff857d03e0  (unknown)  gsignal
-#     @      0x3ff857b3480  (unknown)  abort
-#     @      0x2aa27303a48  (unknown)  gsec_assert_ok()
-#     @      0x2aa27303b80  (unknown)  gsec_test_random_encrypt_decrypt()
-#     @      0x2aa2730156e  (unknown)  main
-#     @      0x3ff857b3732  (unknown)  __libc_start_call_main
-#     @      0x3ff857b380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa27302730  (unknown)  (unknown)
+# E0506 15:48:55.586625401 4020849 aes_gcm_test.cc:77]         assertion failed: status == GRPC_STATUS_OK
+# *** SIGABRT received at time=1651852135 on cpu 1 ***
+# PC: @      0x3ff89d98096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff89c82544  (unknown)  (unknown)
+#     @      0x3ff89c827e0  (unknown)  (unknown)
+#     @      0x3ff8a9fe490  (unknown)  (unknown)
+#     @      0x3ff89d98096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff89d48530  (unknown)  gsignal
+#     @      0x3ff89d2b5c0  (unknown)  abort
+#     @      0x2aa28f84818  (unknown)  gsec_assert_ok()
+#     @      0x2aa28f84944  (unknown)  gsec_test_random_encrypt_decrypt()
+#     @      0x2aa28f82536  (unknown)  main
+#     @      0x3ff89d2b872  (unknown)  __libc_start_call_main
+#     @      0x3ff89d2b950  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa28f836f0  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_crypt
 %endif
 
@@ -1113,7 +1066,7 @@ alts_crypt
 #
 # (aborted without output)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_crypter
 %endif
 
@@ -1121,36 +1074,47 @@ alts_crypter
 # Unexplained:
 #
 # [ RUN      ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
-# E0811 15:42:24.743250725 2232792
-#   alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More
-#   bytes written than expected. Frame decryption failed.
-# [… 14 similar lines omitted …]
-# E0811 15:42:29.735499217 2232786
-#   alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More
-#   bytes written than expected. Frame decryption failed.
-# /builddir/build/BUILD/grpc-1.39.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:245:
-#   Failure
+# E0506 20:38:59.376480159 4049276 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# [… 11 similar lines omitted …]
+# /builddir/build/BUILD/grpc-1.46.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
 # Expected equality of these values:
 #   ev.type
 #     Which is: 1
 #   GRPC_OP_COMPLETE
 #     Which is: 2
-# connect_loop runner:0x3ffc7ffdc68 got ev.type:1 i:0
-# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes (5021 ms)
+# connect_loop runner:0x3fffa47d718 got ev.type:1 i:0
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes (5004 ms)
 # [ RUN      ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
-# [… 2983 lines including some additional failures and error messages omitted …]
-# [----------] 5 tests from AltsConcurrentConnectivityTest (27346 ms total)
+# E0506 20:39:04.393443259 4049343 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# [… 1033 similar lines omitted …]
+# /builddir/build/BUILD/grpc-1.46.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
+# Expected equality of these values:
+#   ev.type
+#     Which is: 1
+#   GRPC_OP_COMPLETE
+#     Which is: 2
+# connect_loop runner:0x2aa06421b00 got ev.type:1 i:0
+# [ … 343 lines with 49 similar errors omitted …]
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes (15017 ms)
+# [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenPeerEndpointClosesConnectionAfterAccepting
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenPeerEndpointClosesConnectionAfterAccepting (4519 ms)
+# [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerClosesConnectionAfterAccepting
+# E0506 20:39:23.930152511 4049976 alts_handshaker_client.cc:223] recv_buffer is nullptr in alts_tsi_handshaker_handle_response()
+# [… 193 similar lines omitted …]
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerClosesConnectionAfterAccepting (2237 ms)
+# [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerHangsAfterAccepting
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerHangsAfterAccepting (244 ms)
+# [----------] 5 tests from AltsConcurrentConnectivityTest (27024 ms total)
 # [----------] Global test environment tear-down
-# [==========] 5 tests from 1 test suite ran. (27347 ms total)
+# [==========] 5 tests from 1 test suite ran. (27024 ms total)
 # [  PASSED  ] 3 tests.
 # [  FAILED  ] 2 tests, listed below:
 # [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
 # [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
 #  2 FAILED TESTS
-# E0811 15:43:02.072126233 2232783 test_config.cc:195]
-#   Timeout in waiting for gRPC shutdown
+# E0506 20:39:36.394518375 4049271 test_config.cc:175]         Timeout in waiting for gRPC shutdown
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_concurrent_connectivity
 %endif
 
@@ -1159,62 +1123,32 @@ alts_concurrent_connectivity
 #
 # (aborted without output)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_frame_protector
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0809 03:12:16.141688879 1707771
-#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
-#   authenticated associated data failed
-# E0809 03:12:16.141863502 1707771 alts_grpc_record_protocol_test.cc:282]
-#   assertion failed: status == TSI_OK
-# *** SIGABRT received at time=1628478736 on cpu 2 ***
-# PC: @      0x3ffa571ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ffa5601524  (unknown)  (unknown)
-#     @      0x3ffa5601790  (unknown)  (unknown)
-#     @      0x3ffa61e3b78  (unknown)  (unknown)
-#     @      0x3ffa571ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ffa56d03e0  (unknown)  gsignal
-#     @      0x3ffa56b3480  (unknown)  abort
-#     @      0x2aa1fa82e3e  (unknown)  random_seal_unseal()
-#     @      0x2aa1fa836f8  (unknown)  alts_grpc_record_protocol_tests()
-#     @      0x2aa1fa81c68  (unknown)  main
-#     @      0x3ffa56b3732  (unknown)  __libc_start_call_main
-#     @      0x3ffa56b380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa1fa81d60  (unknown)  (unknown)
+# E0506 21:49:20.855933553 1468251 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
+# E0506 21:49:20.856134615 1468251 alts_grpc_record_protocol_test.cc:283] assertion failed: status == TSI_OK
+# *** SIGABRT received at time=1651873760 on cpu 0 ***
+# PC: @      0x3ff85598096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff85482544  (unknown)  (unknown)
+#     @      0x3ff854827e0  (unknown)  (unknown)
+#     @      0x3ff861fe490  (unknown)  (unknown)
+#     @      0x3ff85598096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff85548530  (unknown)  gsignal
+#     @      0x3ff8552b5c0  (unknown)  abort
+#     @      0x2aa1888375e  (unknown)  random_seal_unseal()
+#     @      0x2aa18884008  (unknown)  alts_grpc_record_protocol_tests()
+#     @      0x2aa1888258c  (unknown)  main
+#     @      0x3ff8552b872  (unknown)  __libc_start_call_main
+#     @      0x3ff8552b950  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa18882680  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_grpc_record_protocol
-%endif
-
-%ifarch s390x
-# Unexplained:
-#
-# E0807 15:46:27.681935728 3628534
-#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
-#   authenticated associated data failed
-# E0807 15:46:27.682097664 3628534 alts_grpc_record_protocol_test.cc:282]
-#   assertion failed: status == TSI_OK
-# *** SIGABRT received at time=1628351187 on cpu 1 ***
-# PC: @      0x3ffbae9ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ffbad81524  (unknown)  (unknown)
-#     @      0x3ffbad81790  (unknown)  (unknown)
-#     @      0x3ffbb963b78  (unknown)  (unknown)
-#     @      0x3ffbae9ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ffbae503e0  (unknown)  gsignal
-#     @      0x3ffbae33480  (unknown)  abort
-#     @      0x2aa07782e3e  (unknown)  random_seal_unseal()
-#     @      0x2aa077836f8  (unknown)  alts_grpc_record_protocol_tests()
-#     @      0x2aa07781c68  (unknown)  main
-#     @      0x3ffbae33732  (unknown)  __libc_start_call_main
-#     @      0x3ffbae3380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa07781d60  (unknown)  (unknown)
-#
-# Confirmed in 1.41.0 2021-10-10
-alts_handshaker_client
 %endif
 
 %ifarch s390x
@@ -1222,293 +1156,115 @@ alts_handshaker_client
 #
 # (aborted without output)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_iovec_record_protocol
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# [ RUN      ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/common/alts_util_test.cc:122: Failure
-# Expected equality of these values:
-#   expected_sl
-#     Which is: 1
-#   alts_context->security_level()
-#     Which is: 0
-# [  FAILED  ] AltsUtilTest.AuthContextWithGoodAltsContextWithoutRpcVersions (0 ms)
+# E0507 14:19:47.146439950 2465022 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
+# E0507 14:19:47.146597694 2465022 alts_zero_copy_grpc_protector_test.cc:184] assertion failed: tsi_zero_copy_grpc_protector_protect( sender, &var->original_sb, &var->protected_sb) == TSI_OK
+# *** SIGABRT received at time=1651933187 on cpu 0 ***
+# PC: @      0x3ff89498096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff89382544  (unknown)  (unknown)
+#     @      0x3ff893827e0  (unknown)  (unknown)
+#     @      0x3ff8a0fe490  (unknown)  (unknown)
+#     @      0x3ff89498096  (unknown)  __pthread_kill_implementation
+#     @      0x3ff89448530  (unknown)  gsignal
+#     @      0x3ff8942b5c0  (unknown)  abort
+#     @      0x2aa1a0032d0  (unknown)  seal_unseal_small_buffer()
+#     @      0x2aa1a003478  (unknown)  alts_zero_copy_protector_seal_unseal_small_buffer_tests()
+#     @      0x2aa1a00254a  (unknown)  main
+#     @      0x3ff8942b872  (unknown)  __libc_start_call_main
+#     @      0x3ff8942b950  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa1a002630  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-10
-alts_util
-%endif
-
-%ifarch s390x
-# Unexplained:
-#
-# E0809 16:49:05.522667340 1558872
-#   alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting
-#   authenticated associated data failed
-# E0809 16:49:05.523083934 1558872 alts_zero_copy_grpc_protector_test.cc:183]
-#   assertion failed: tsi_zero_copy_grpc_protector_protect( sender,
-#   &var->original_sb, &var->protected_sb) == TSI_OK
-# *** SIGABRT received at time=1628527745 on cpu 2 ***
-# PC: @      0x3ff8169ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff81581524  (unknown)  (unknown)
-#     @      0x3ff81581790  (unknown)  (unknown)
-#     @      0x3ff82163b78  (unknown)  (unknown)
-#     @      0x3ff8169ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff816503e0  (unknown)  gsignal
-#     @      0x3ff81633480  (unknown)  abort
-#     @      0x2aa3d0028b8  (unknown)  seal_unseal_small_buffer()
-#     @      0x2aa3d002a68  (unknown)  alts_zero_copy_protector_seal_unseal_small_buffer_tests()
-#     @      0x2aa3d001b26  (unknown)  main
-#     @      0x3ff81633732  (unknown)  __libc_start_call_main
-#     @      0x3ff8163380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa3d001c10  (unknown)  (unknown)
-#
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-06
 alts_zero_copy_grpc_protector
 %endif
 
-%ifarch ppc64le %{arm64} s390x
-# Unexplained:
+# Unexplained, flaky:
 #
-# ppc64le, aarch64:
+# (hangs indefinitely, timeout triggered)
 #
-# E0811 14:46:04.709808861 2142245 tcp_server_posix.cc:216]    Failed accept4: Too many open files
-# terminate called after throwing an instance of 'std::runtime_error'
-#   what():  random_device::random_device(const std::string&): device not available
-# *** SIGABRT received at time=1628693164 on cpu 4 ***
-# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
-# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0x7fff926a9864 while already in AbslFailureSignalHandler()
-# [… 13710 similar messages omitted …]
-# *** SIGABRT received at time=1628693166 on cpu 1 ***
-# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
-# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0x7fff926a9864 while already in AbslFailureSignalHandler()
-# *** SIGABRT received at time=1628693167 on cpu 1 ***
-# PC: @     0x7fff926a9864  (unknown)  __pthread_kill_internal
-#     @     0x7fff92461a48  (unknown)  (unknown)
-#     @     0x7fff937ae4e2         48  (unknown)
-#     @     0x7fff9264848c         48  gsignal
-#     @     0x7fff92621404        336  abort
-#     @     0x7fff91d112a4       3200  (unknown)
-#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
-#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
-#     @     0x7fff923f1568        176  (unknown)
-#     @     0x7fff923f1730         96  (unknown)
-#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
-#     @     0x7fff924616e4        480  (unknown)
-#     @     0x7fff92461a48  (unknown)  (unknown)
-#     @     0x7fff937ae4e2         48  (unknown)
-#     @     0x7fff9264848c         48  gsignal
-#     @     0x7fff92621404        336  abort
-#     @     0x7fff91d112a4       3200  (unknown)
-#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
-#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
-#     @     0x7fff923f1568        176  (unknown)
-#     @     0x7fff923f1730         96  (unknown)
-#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
-#     @     0x7fff924616e4        480  (unknown)
-#     @     0x7fff92461a48  (unknown)  (unknown)
-#     @     0x7fff937ae4e2         48  (unknown)
-#     @     0x7fff9264848c         48  gsignal
-#     @     0x7fff92621404        336  abort
-#     @     0x7fff91d112a4       3200  (unknown)
-#     @     0x7fff91d112fc         48  absl::lts_20210324::raw_logging_internal::RawLog()
-#     @     0x7fff91a824c4        272  absl::lts_20210324::debugging_internal::AddressIsReadable()
-#     @     0x7fff923f1568        176  (unknown)
-#     @     0x7fff923f1730         96  (unknown)
-#     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
-#     @ ... and at least 1000 more frames
-#
-# s390x:
-#
-# E0811 15:35:58.278096553   31424 grpclb.cc:1055]             [grpclb 0xfe65c0] lb_calld=0xfe9778: Invalid LB response received: ''. Ignoring.
-# E0811 15:35:58.966844494   31575 tcp_server_posix.cc:216]    Failed accept4: Too many open files
-# terminate called after throwing an instance of 'std::runtime_error'
-#   what():  random_device::random_device(const std::string&): device not available
-# *** SIGABRT received at time=1628696159 on cpu 4 ***
-# [symbolize_elf.inc : 965] RAW: /proc/self/task/31421/maps: errno=24
-# PC: @ 0xb6418058  (unknown)  (unknown)
-#     @ 0xb62d4274  (unknown)  (unknown)
-#     @ 0xb63d2310  (unknown)  (unknown)
-#     @ 0xb6418058  (unknown)  (unknown)
-#     @ 0xb63d0ddc  (unknown)  (unknown)
-#
-# Confirmed in 1.41.0 2021-10-10
-client_channel_stress
-%endif
-
-%ifarch s390x
-# Unexplained hang:
-#
-# [ RUN      ] ClientLbEnd2endTest.RoundRobinWithHealthChecking
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1452: Failure
-# Value of: WaitForChannelReady(channel.get())
-#   Actual: false
-# Expected: true
-# [… hundreds of similar messages …]
-# From /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1462
-# Error: Deadline Exceeded
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:342: Failure
-# Value of: success
-#   Actual: false
-# Expected: true
-# From /builddir/build/BUILD/grpc-1.39.0/test/cpp/end2end/client_lb_end2end_test.cc:1462
-# Error: Deadline Exceeded
-# timeout: sending signal TERM to command 'redhat-linux-build/client_lb_end2end_test'
-# *** SIGTERM received at time=1628744184 on cpu 0 ***
-# PC: @      0x3ff89d165aa  (unknown)  epoll_wait
-#     @      0x3ff89881524  (unknown)  (unknown)
-#     @      0x3ff89881790  (unknown)  (unknown)
-#     @      0x3ff8acffb78  (unknown)  (unknown)
-#     @      0x3ff89d165aa  (unknown)  epoll_wait
-#     @      0x3ff8a573dea  (unknown)  pollset_work()
-#     @      0x3ff8a577630  (unknown)  pollset_work()
-#     @      0x3ff8a611a8e  (unknown)  cq_pluck()
-#     @      0x3ff8a6102c2  (unknown)  grpc_completion_queue_pluck
-#     @      0x3ff8a84c08c  (unknown)  grpc::CoreCodegen::grpc_completion_queue_pluck()
-#     @      0x2aa189b3de0  (unknown)  grpc::CompletionQueue::Pluck()
-#     @      0x2aa189bb4be  (unknown)  grpc::internal::BlockingUnaryCallImpl<>::BlockingUnaryCallImpl()
-#     @      0x2aa189d213a  (unknown)  grpc::internal::BlockingUnaryCall<>()
-#     @      0x2aa189c4e2e  (unknown)  grpc::testing::EchoTestService::Stub::Echo()
-#     @      0x2aa18a01112  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::SendRpc()
-#     @      0x2aa18a0139c  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::CheckRpcSendOk()
-#     @      0x2aa18a07a00  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest::WaitForServer()
-#     @      0x2aa18a0f97a  (unknown)  grpc::testing::(anonymous namespace)::ClientLbEnd2endTest_RoundRobinWithHealthChecking_Test::TestBody()
-#     @      0x2aa18a706f6  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
-#     @      0x2aa18a62aba  (unknown)  testing::Test::Run()
-#     @      0x2aa18a62d54  (unknown)  testing::TestInfo::Run()
-#     @      0x2aa18a635ce  (unknown)  testing::TestSuite::Run()
-#     @      0x2aa18a64258  (unknown)  testing::internal::UnitTestImpl::RunAllTests()
-#     @      0x2aa18a70c86  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
-#     @      0x2aa18a62e68  (unknown)  testing::UnitTest::Run()
-#     @      0x2aa189aa086  (unknown)  main
-#     @      0x3ff89c33732  (unknown)  __libc_start_call_main
-#     @      0x3ff89c3380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa189ac6a0  (unknown)  (unknown)
-#
-# Confirmed in 1.41.0 2021-10-10
-client_lb_end2end
-%endif
-
-# Times out often enough to be annoying.
-#
-# Confirmed in 1.41.1 2022-03-28
+# Confirmed in 1.46.1 2022-05-14 (on at least ppc64le)
 client_ssl
-
-# Unexplained:
-#
-# [ RUN      ] EvaluateArgsTest.EmptyMetadata
-# *** SIGSEGV received at time=1628108665 on cpu 143 ***
-# PC: @     0xffffac12f3d0  (unknown)  __strlen_asimd
-#     @     0xffffac06f810  1142966656  (unknown)
-#     @     0xffffaca217ec         64  (unknown)
-#     @     0xaaaadf5806dc        624  grpc_core::EvaluateArgsTest_EmptyMetadata_Test::TestBody()
-#     @     0xaaaadf5c1b78         96  testing::internal::HandleExceptionsInMethodIfSupported<>()
-#     @     0xaaaadf5b48d8         32  testing::Test::Run()
-#     @     0xaaaadf5b4ad4         64  testing::TestInfo::Run()
-#     @     0xaaaadf5b5424         80  testing::TestSuite::Run()
-#     @     0xaaaadf5b5f08        240  testing::internal::UnitTestImpl::RunAllTests()
-#     @     0xaaaadf5b4ca0        144  testing::UnitTest::Run()
-#     @     0xaaaadf57c2d8         64  main
-#     @     0xffffac0ba0c4        272  __libc_start_call_main
-#     @     0xffffac0ba198  (unknown)  __libc_start_main@GLIBC_2.17
-#
-# Confirmed in 1.41.0 2021-10-10
-evaluate_args
 
 %ifarch x86_64
 # Unexplained:
 #
 # [ RUN      ] ExamineStackTest.AbseilStackProvider
-# /builddir/build/BUILD/grpc-1.39.0/test/core/gprpp/examine_stack_test.cc:75: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/core/gprpp/examine_stack_test.cc:75: Failure
 # Value of: stack_trace->find("GetCurrentStackTrace") != std::string::npos
 #   Actual: false
 # Expected: true
 # [  FAILED  ] ExamineStackTest.AbseilStackProvider (0 ms)
 #
-# Confirmed in 1.41.0 2021-10-10
+# Confirmed in 1.46.0 2022-05-09
 examine_stack
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0809 21:33:27.754988355 3699302 cq_verifier.cc:228]
-#   no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1
-#   /builddir/build/BUILD/grpc-1.39.0/test/core/end2end/goaway_server_test.cc:264
-# tag(769) GRPC_OP_COMPLETE success=1
-#   /builddir/build/BUILD/grpc-1.39.0/test/core/end2end/goaway_server_test.cc:265
-# *** SIGABRT received at time=1628544807 on cpu 2 ***
-# PC: @      0x3ff9ce1ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff9cd01524  (unknown)  (unknown)
-#     @      0x3ff9cd01790  (unknown)  (unknown)
-#     @      0x3ff9d9e3b78  (unknown)  (unknown)
-#     @      0x3ff9ce1ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff9cdd03e0  (unknown)  gsignal
-#     @      0x3ff9cdb3480  (unknown)  abort
-#     @      0x2aa3fb850a6  (unknown)  cq_verify()
-#     @      0x2aa3fb8359e  (unknown)  main
-#     @      0x3ff9cdb3732  (unknown)  __libc_start_call_main
-#     @      0x3ff9cdb380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa3fb83cd0  (unknown)  (unknown)
+# E0509 15:02:47.269422552 2434394 cq_verifier.cc:228]         no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.46.0/test/core/end2end/goaway_server_test.cc:279
+# tag(769) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.46.0/test/core/end2end/goaway_server_test.cc:280
+# *** SIGABRT received at time=1652108567 on cpu 1 ***
+# PC: @      0x3ffb6e98096  (unknown)  __pthread_kill_implementation
+#     @      0x3ffb6d82544  (unknown)  (unknown)
+#     @      0x3ffb6d827e0  (unknown)  (unknown)
+#     @      0x3ffb7cfe490  (unknown)  (unknown)
+#     @      0x3ffb6e98096  (unknown)  __pthread_kill_implementation
+#     @      0x3ffb6e48530  (unknown)  gsignal
+#     @      0x3ffb6e2b5c0  (unknown)  abort
+#     @      0x2aa1b406a72  (unknown)  cq_verify()
+#     @      0x2aa1b404f9a  (unknown)  main
+#     @      0x3ffb6e2b872  (unknown)  __libc_start_call_main
+#     @      0x3ffb6e2b950  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa1b405720  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-11
+# Confirmed in 1.46.0 2022-05-09
 goaway_server
 %endif
 
 # Unexplained:
 #
 # [ RUN      ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet
-# [libprotobuf ERROR google/protobuf/text_format.cc:319] Error parsing text-format grpc.testing.SimpleRequest: 1:7: Message type "grpc.testing.SimpleRequest" has no field named "redhat".
+# [libprotobuf ERROR google/protobuf/text_format.cc:335] Error parsing text-format grpc.testing.SimpleRequest: 1:7: Message type "grpc.testing.SimpleRequest" has no field named "redhat".
 # Failed to convert text format to proto.
 # Failed to parse request.
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/util/grpc_tool_test.cc:912: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/cpp/util/grpc_tool_test.cc:915: Failure
 # Value of: 0 == GrpcToolMainLib(ArraySize(argv), argv, TestCliCredentials(), std::bind(PrintStream, &output_stream, std::placeholders::_1))
 #   Actual: false
 # Expected: true
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/util/grpc_tool_test.cc:917: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/cpp/util/grpc_tool_test.cc:920: Failure
 # Value of: nullptr != strstr(output_stream.str().c_str(), "message: \"true\"")
 #   Actual: false
 # Expected: true
 # [  FAILED  ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet (4 ms)
 #
-# Confirmed in 1.41.0 2021-10-11
+# Confirmed in 1.46.0 2022-05-09
 grpc_tool
-
-# While we have fixed a couple of problems with these tests, including porting
-# the test server to Python 3, success still eludes us.
-#
-# 127.0.0.1 - - [02/Aug/2021 20:34:47] "GET /get HTTP/1.0" 200 -
-# E0802 20:34:48.343858742 1765052 httpcli_test.cc:52]
-#   assertion failed: response->status == 200
-# *** SIGABRT received at time=1627936488 on cpu 2 ***
-# PC: @     0x7fe44b4f2783  (unknown)  pthread_kill@@GLIBC_2.34
-#     @ ... and at least 1 more frames
-#
-# Confirmed in 1.41.0 2021-10-11
-httpcli
-httpscli
 
 %ifarch s390x
 # Unexplained:
 #
-# *** SIGABRT received at time=1628614005 on cpu 0 ***
-# PC: @      0x3ff81d1ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff81c01524  (unknown)  (unknown)
-#     @      0x3ff81c01790  (unknown)  (unknown)
-#     @      0x3ff82363b78  (unknown)  (unknown)
-#     @      0x3ff81d1ec8e  (unknown)  __pthread_kill_internal
-#     @      0x3ff81cd03e0  (unknown)  gsignal
-#     @      0x3ff81cb3480  (unknown)  abort
-#     @      0x2aa18880c9e  (unknown)  verification_test()
-#     @      0x2aa18880a34  (unknown)  main
-#     @      0x3ff81cb3732  (unknown)  __libc_start_call_main
-#     @      0x3ff81cb380e  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa18880ab0  (unknown)  (unknown)
+# *** SIGABRT received at time=1652104042 on cpu 1 ***
+# PC: @      0x3ffa5398096  (unknown)  __pthread_kill_implementation
+#     @      0x3ffa5282544  (unknown)  (unknown)
+#     @      0x3ffa52827e0  (unknown)  (unknown)
+#     @      0x3ffa59fe490  (unknown)  (unknown)
+#     @      0x3ffa5398096  (unknown)  __pthread_kill_implementation
+#     @      0x3ffa5348530  (unknown)  gsignal
+#     @      0x3ffa532b5c0  (unknown)  abort
+#     @      0x2aa2b40145e  (unknown)  verification_test()
+#     @      0x2aa2b4011e8  (unknown)  main
+#     @      0x3ffa532b872  (unknown)  __libc_start_call_main
+#     @      0x3ffa532b950  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa2b401270  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-11
+# Confirmed in 1.46.0 2022-05-09
 murmur_hash
 %endif
 
@@ -1516,68 +1272,89 @@ murmur_hash
 # Unexplained:
 #
 # [ RUN      ] StackTracerTest.Basic
-# /builddir/build/BUILD/grpc-1.39.0/test/core/util/stack_tracer_test.cc:35: Failure
+# /builddir/build/BUILD/grpc-1.46.0/test/core/util/stack_tracer_test.cc:36: Failure
 # Value of: absl::StrContains(stack_trace, "Basic")
 #   Actual: false
 # Expected: true
-# [  FAILED  ] StackTracerTest.Basic (1 ms)
+# [  FAILED  ] StackTracerTest.Basic (0 ms)
 #
-# Confirmed in 1.41.0 2021-10-11
+# Confirmed in 1.46.0 2022-05-09
 stack_tracer
 %endif
 
+%ifarch aarch64 x86_64 ppc64le
 # Unexplained:
 #
-# This may be flaky and sometimes succeed; this is known to be the case on
-# ppc64le.
+# This may be flaky and sometimes succeed; this was known to be the case on
+# ppc64le in older versions.
 #
-# E0805 15:49:03.066330569 3863708 oauth2_credentials.cc:158]
-#   Call to http server ended with error 401
-#   [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_",
-#   "expires_in":3599,  "token_type":"Bearer"}].
-# *** SIGSEGV received at time=1628178543 on cpu 3 ***
-# PC: @     0x7ff236e4219c  (unknown)  __strlen_evex
-#     @ ... and at least 1 more frames
+# [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
+# E0509 16:23:59.122730405 3124460 oauth2_credentials.cc:165]  Call to http server ended with error 401 [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,  "token_type":"Bearer"}].
+# *** SIGSEGV received at time=1652113439 on cpu 3 ***
+# PC: @     0x7f13bf51165c  (unknown)  __strlen_evex
+#     @               0x33  (unknown)  (unknown)
 #
-# Confirmed in 1.41.0 2021-10-12
+# Confirmed in 1.46.0 2022-05-09
 test_core_security_credentials
+%endif
 
-# Unexplained:
+# It looks like server_key_log has the right lines, but in an unexpected order.
+# It is not immediately obvious if this a real problem, or an implementation
+# quirk. Opinions about whether, or how, to report this upstream are welcome!
 #
-# [ RUN      ] XdsTest/BasicTest.Vanilla/XdsResolverV3
-# E0811 05:13:55.545624715 3911922 xds_resolver.cc:836]
-#   [xds_resolver 0x5650c8f82c00] received error from XdsClient:
-#   {"created":"@1628658835.545596932","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# E0811 05:13:55.546102538 3911922 cds.cc:533]
-#   [cdslb 0x5650c8f80dd0] xds error obtaining data for cluster cluster_name:
-#   {"created":"@1628658835.545596932","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# E0811 05:13:55.546238067 3911922 xds_cluster_resolver.cc:741]
-#   [xds_cluster_resolver_lb 0x5650c90f0200] discovery mechanism 0 xds watcher
-#   reported error: {"created":"@1628658835.545596932","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# [       OK ] XdsTest/BasicTest.Vanilla/XdsResolverV3 (102 ms)
-# [ RUN      ] XdsTest/BasicTest.Vanilla/XdsResolverV3WithLoadReporting
-# E0811 05:13:55.635384861 3911938 xds_resolver.cc:836]
-#   [xds_resolver 0x5650c8f82c00] received error from XdsClient:
-#   {"created":"@1628658835.635350317","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# E0811 05:13:55.635785649 3911938 cds.cc:533]
-#   [cdslb 0x7f597800aaf0] xds error obtaining data for cluster cluster_name:
-#   {"created":"@1628658835.635350317","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# E0811 05:13:55.635941953 3911938 xds_cluster_resolver.cc:741]
-#   [xds_cluster_resolver_lb 0x7f597c004940] discovery mechanism 0 xds watcher
-#   reported error: {"created":"@1628658835.635350317","description":"xds call
-#   failed","file":"/builddir/build/BUILD/grpc-1.39.0/src/core/ext/xds/xds_client.cc","file_line":1309}
-# [       OK ] XdsTest/BasicTest.Vanilla/XdsResolverV3WithLoadReporting (89 ms)
-# [ RUN      ] XdsTest/BasicTest.Vanilla/FakeResolverV3
-# *** SIGSEGV received at time=1628658835 on cpu 5 ***
-# PC: @     0x7f5984c2d19c  (unknown)  __strlen_evex
-#     @ ... and at least 1 more frames
+# [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 e2d3f9cb30e7eef95f95e3bca6f5e4258e42cc7903c424529730f2397ea6444b8c5e6e8c40b6f8d2060141a045ef814c\rEXPORTER_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 820a4529b3e9614df378adb43a712ebc472b7fc91b6a92ff3421fb5870dd18782e7fb47e261eca093d9b8285e4ff17e0\rSERVER_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 dfac76dd16ed221785dc5e41fb1243430bddd70d78fe33344c8cc899d1e1b3f56d6865a2506044674063e9d32902588e\rCLIENT_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 f2f276c097044d63448a3413109702cd6413e6bbd75b3a40208c3fb5a9a0c8ca86d4a0460e1a04dcc025571e1edbb927\rCLIENT_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 8abeb453616823875792497d98bc6032f772a6f4cd75716209c49c4abc4ef470e6fd4ab274b7019162a6c584ff94ec4b\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 e2d3f9cb30e7eef95f95e3bca6f5e4258e42cc7903c424529730f2397ea6444b8c5e6e8c40b6f8d2060141a045ef814c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 f2f276c097044d63448a3413109702cd6413e6bbd75b3a40208c3fb5a9a0c8ca86d4a0460e1a04dcc025571e1edbb927\rEXPORTER_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 820a4529b3e9614df378adb43a712ebc472b7fc91b6a92ff3421fb5870dd18782e7fb47e261eca093d9b8285e4ff17e0\rSERVER_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 dfac76dd16ed221785dc5e41fb1243430bddd70d78fe33344c8cc899d1e1b3f56d6865a2506044674063e9d32902588e\rCLIENT_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 8abeb453616823875792497d98bc6032f772a6f4cd75716209c49c4abc4ef470e6fd4ab274b7019162a6c584ff94ec4b\r"
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 aaa28bd7a945c3fccb1248bd024a604e2825891009af24bf44376d0ba36983dc243c7cb272e8f403db8762d6f44f1c3c\rEXPORTER_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 c4a36ba53829243df5fccf0bf416c889e9c8813353a4487615e33dd443e5f196267c0fb7bacb8ee5b23f9c8c38c46b2e\rSERVER_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 89765e5e4cbd62a3be738f4c2ceb4be2e3fe204245f9765cab0f026ea1ec2e686d0df06291a1ae44b744a50e9493f944\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6ce17c81bb29ef1660e4404ac61755ba438a4c26bb93e812602e86329c03c6d63b6db282d9e6d0827025a43e2a6db507\rCLIENT_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6a816d2d67967d1d455b69894ee731e41794b3fe299220bae615e66727d112f58d8982675a5d533d49dc0378bf9fb103\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 aaa28bd7a945c3fccb1248bd024a604e2825891009af24bf44376d0ba36983dc243c7cb272e8f403db8762d6f44f1c3c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6ce17c81bb29ef1660e4404ac61755ba438a4c26bb93e812602e86329c03c6d63b6db282d9e6d0827025a43e2a6db507\rEXPORTER_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 c4a36ba53829243df5fccf0bf416c889e9c8813353a4487615e33dd443e5f196267c0fb7bacb8ee5b23f9c8c38c46b2e\rSERVER_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 89765e5e4cbd62a3be738f4c2ceb4be2e3fe204245f9765cab0f026ea1ec2e686d0df06291a1ae44b744a50e9493f944\rCLIENT_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6a816d2d67967d1d455b69894ee731e41794b3fe299220bae615e66727d112f58d8982675a5d533d49dc0378bf9fb103\r"
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 4faa820090880462e1b2e9a3bb83e2f09744986e72e26e57d6c9ac7bb72058b57adac41c123de64e4b3b72719bc8eea4\rEXPORTER_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc e43c4527fbe9b5a552604b7cc92f47ab79cdf6f58804b06f0e02a634eb252f95b78b202634d084c46b24b132187e603d\rSERVER_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 2da0bcf4584dd9cb1795f2d8adc4e766c0d6c2d0295cdd5f6ec0e9eed057613d81ab386e96bf1a4d2364d66a677acc3c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 95beadcad1b17f86e504b4bf525406c6a29a2251867567aa93ce23b531b62f9b0c2c7e82d061c2a741edd96d84874ad5\rCLIENT_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 0f047139f6c4dfafb590f3a62ee812cefc8550aaa2f15edca843f0365d5a17b4507ad5f63a369974e83cd1ec0fdb5049\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 4faa820090880462e1b2e9a3bb83e2f09744986e72e26e57d6c9ac7bb72058b57adac41c123de64e4b3b72719bc8eea4\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 95beadcad1b17f86e504b4bf525406c6a29a2251867567aa93ce23b531b62f9b0c2c7e82d061c2a741edd96d84874ad5\rEXPORTER_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc e43c4527fbe9b5a552604b7cc92f47ab79cdf6f58804b06f0e02a634eb252f95b78b202634d084c46b24b132187e603d\rSERVER_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 2da0bcf4584dd9cb1795f2d8adc4e766c0d6c2d0295cdd5f6ec0e9eed057613d81ab386e96bf1a4d2364d66a677acc3c\rCLIENT_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 0f047139f6c4dfafb590f3a62ee812cefc8550aaa2f15edca843f0365d5a17b4507ad5f63a369974e83cd1ec0fdb5049\r"
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff d09d807afd55f9c1582e6879d97a262fa26f19db06cb57a14ce53f6be372dbb70ed036f8bf7d5f6a3168771eb2e4de30\rEXPORTER_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 5e76f891f0bbf4fa51a6fc5cc52aadf150995804a3ab81a185efb3ff02a6847ba7945cdd9a3a4c99ab3a657d150e1ca6\rSERVER_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 4c2839a7d98111e43bccabc839fd76ca6fc35b6bf294d93e800d8d0c8536b5b71eb11b6b2e5233227f42f2e4ba04645e\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 920fc5885c48f5aa5d79fc6749e29f9bc8841f73a87a949888e7bbfbabaff970bf54ed668e86c591b5d11c2ff59720e4\rCLIENT_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff a1691a7847eb12b18d58152bb2b849ae588abf54b6f9ff019abebedb3e749e13bbe039526137d6b5ae2d6e630bb4589c\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff d09d807afd55f9c1582e6879d97a262fa26f19db06cb57a14ce53f6be372dbb70ed036f8bf7d5f6a3168771eb2e4de30\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 920fc5885c48f5aa5d79fc6749e29f9bc8841f73a87a949888e7bbfbabaff970bf54ed668e86c591b5d11c2ff59720e4\rEXPORTER_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 5e76f891f0bbf4fa51a6fc5cc52aadf150995804a3ab81a185efb3ff02a6847ba7945cdd9a3a4c99ab3a657d150e1ca6\rSERVER_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 4c2839a7d98111e43bccabc839fd76ca6fc35b6bf294d93e800d8d0c8536b5b71eb11b6b2e5233227f42f2e4ba04645e\rCLIENT_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff a1691a7847eb12b18d58152bb2b849ae588abf54b6f9ff019abebedb3e749e13bbe039526137d6b5ae2d6e630bb4589c\r"
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac e6fedd13291bdc2820ecbe310ffd3c778f4a74ddee894d617fb94bce1ac8ae89c2ea71b34e0036c48e8b7cb410a3ccad\rEXPORTER_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 50cce74e4c6ac319c384cd9de9b68e0bc299f26a0ed2142d710b0cf361fd188eabb2c7f3bd8113cae2fcb4f3eca66c22\rSERVER_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 90d2e703ad1079114b224f53a5f8225fe0305987d6a219527d28903ccae552f27b5ca7089d7790d66da0cccbdfd26645\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 6b0dcc8075ee0b2188b6cf781662be3c8b3e43476ac48f2ab1257adb8c9e9c74b5824347e18c4f969c6cbb30d5c7207f\rCLIENT_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 1acef388db865ac638051ee13f5b6ef7a9ca79822e0436a11aaf64a1af2cb07a72cf26a115cb35556637a0a7c2fd27a2\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac e6fedd13291bdc2820ecbe310ffd3c778f4a74ddee894d617fb94bce1ac8ae89c2ea71b34e0036c48e8b7cb410a3ccad\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 6b0dcc8075ee0b2188b6cf781662be3c8b3e43476ac48f2ab1257adb8c9e9c74b5824347e18c4f969c6cbb30d5c7207f\rEXPORTER_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 50cce74e4c6ac319c384cd9de9b68e0bc299f26a0ed2142d710b0cf361fd188eabb2c7f3bd8113cae2fcb4f3eca66c22\rSERVER_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 90d2e703ad1079114b224f53a5f8225fe0305987d6a219527d28903ccae552f27b5ca7089d7790d66da0cccbdfd26645\rCLIENT_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 1acef388db865ac638051ee13f5b6ef7a9ca79822e0436a11aaf64a1af2cb07a72cf26a115cb35556637a0a7c2fd27a2\r"
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 00-01 00-00> (66 ms)
+# [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true
+# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Value of: server_key_log
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 73d93193674a9695da3a647bba6c3f73fbfc97c4aa8ec7c6c5c4fb3bd5c6820ce08c0a1820180e3ce43aab2f75b72aac\rEXPORTER_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 763fa5cb1c97c94afc21ebc009e892dc383e201a6e9e96edc23c17b5cd97f524ba52644a1df4a75615df043de4fbcb39\rSERVER_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d e5f7b8ab7a46968f2ad0dcaf6af74ad22a9da21fb832b5d4bbf307cc791fa5354ba6ba8fc43397b3895b5fc83c8f65f4\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d f5f336b8428667b13bf8a67bb0dcb9c21ba2fe8cfe1281d2a41c55b170b49ae79b4a5d1eac5742d9658af5ef547f344d\rCLIENT_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 6c16bd5f35371de56139a027f06004bc264725922a09bfef8cdf7a33e7b4b8c69f0bf6293e2cb3523c7f22e84410176d\rSERVER_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 ea5bed615069634fe81ec1a9f6096e5ee1c74fe321743a65898eecfbfab9956e73d7de35a9eba0fc55b957ba6cdf34ee\rEXPORTER_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 113d480846d1db2326c46f52559f173d5a390220618ea81afd5a63165a64cc911ff011dbf915de20699251a25036655a\rSERVER_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 443c7cfb34709b1ce2e80592e2192786ee6e1ad86f145a32e1ec9fc076b682b5cdcc7def181fbc51f835cf4888f0f85b\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 8fd27dfdb917133ba4a9dc594821ca3df81fecd60da72dd8f5b779a96cbd3a41ce9e93b435eac4850d29faddb7500dc8\rCLIENT_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 691969bbf02c386f2758cc5dfd197fc7272430902b0c90a4b365ab3a1cc5066a616bc50ad29ceecba6f23dc85bd277e5\rSERVER_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 3c17149401c2b3878cbe3105164d362bba2e098e0d1de09bf69939568a2c69133c0ddc1c8fa76903e5e293b1197a01fb\rEXPORTER_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a e668b4888a058ce00a93da55ac690365336ee6cf331ad2ae97e0b8c837cf0b449aed4940ee2a3ab56c045056c1d5574d\rSERVER_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 7bd47384a53931188daab512bb59cedfd2f309ed189f80ad737f4465cd00fb472cc11992204c2252d534ffc9b48bc097\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 6ae0594f0c38c3abf6a65b428f00347c6aee8b60a54fd702458ab439c6f718c58bdf55b92c42b3d968663e385922294b\rCLIENT_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a cd9ed62e171e71d65580455e7ce374a2a91e15f3f889441144c23b2a54e6c4b2daf98e09525c317d871686872a5f2d81\rSERVER_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 330b459fed7217708e8163baf5eabe6a34a45bbf3d4c1bde32f7bcce29016bec85539ee7724c73d23cbaaa5f8e100a34\rEXPORTER_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff cc32ae2d7a1bd46bc38569ebf0987e36b4ef1037f5280099a80e3ee5cf83a0be1d8283f5d925e12c78b27660de63cc9f\rSERVER_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 2be00b20bdf6157af69c6bac8806d5dfb6c13a3cfa9d314c73d46ead360f3a9c1562eb2eb1a073c86fab2ceda4da2a56\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff e106db0914f10fc6612d4b1cbdeb92bffc3ec4c21ab906a17a3a060b7a5d91e805a41b98822f9a6482e8eb510fb37ba4\rCLIENT_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 7505e76f6398b39352003bbc3268a36a137ef4ecb2a795a8f53e9a77fdf57b5b1e2793f2ed6cb721e991920d87607aa7\rSERVER_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 c96ade516607c05ac9b5016caf4d554ba26c8b540c37eb5d4c6a4f1849b4e50da20614cf55909d0998e744a4b0e9e276\rEXPORTER_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 4e5196a9c611ae860f8b8b7d16f8130fcfdacdf899831997e7a410e18d2d9b19f5eaa2aa79b868b5b6bad29a84e97fff\rSERVER_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 aac75064ad90e8b08818e4c6d0b895639f78f89d5ea9e3bc780b9fc295f2430fd4edb30eef91202bcc61b19774bcbdd9\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 658902e283b741d5057db588d38b0d565fe3479bb242a7b93ec614f94d142b86608c9b6e6e93794c28e06ab7a12e3382\rCLIENT_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 062684c5b1bcb1ba7b1997c88694d06f81a250f7bb90b9c0214989753eca11c2308a0e5431d6c80607ad5cd7f83ad98d\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 73d93193674a9695da3a647bba6c3f73fbfc97c4aa8ec7c6c5c4fb3bd5c6820ce08c0a1820180e3ce43aab2f75b72aac\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d f5f336b8428667b13bf8a67bb0dcb9c21ba2fe8cfe1281d2a41c55b170b49ae79b4a5d1eac5742d9658af5ef547f344d\rEXPORTER_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 763fa5cb1c97c94afc21ebc009e892dc383e201a6e9e96edc23c17b5cd97f524ba52644a1df4a75615df043de4fbcb39\rSERVER_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d e5f7b8ab7a46968f2ad0dcaf6af74ad22a9da21fb832b5d4bbf307cc791fa5354ba6ba8fc43397b3895b5fc83c8f65f4\rCLIENT_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 6c16bd5f35371de56139a027f06004bc264725922a09bfef8cdf7a33e7b4b8c69f0bf6293e2cb3523c7f22e84410176d\rSERVER_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 ea5bed615069634fe81ec1a9f6096e5ee1c74fe321743a65898eecfbfab9956e73d7de35a9eba0fc55b957ba6cdf34ee\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 8fd27dfdb917133ba4a9dc594821ca3df81fecd60da72dd8f5b779a96cbd3a41ce9e93b435eac4850d29faddb7500dc8\rEXPORTER_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 113d480846d1db2326c46f52559f173d5a390220618ea81afd5a63165a64cc911ff011dbf915de20699251a25036655a\rSERVER_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 443c7cfb34709b1ce2e80592e2192786ee6e1ad86f145a32e1ec9fc076b682b5cdcc7def181fbc51f835cf4888f0f85b\rCLIENT_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 691969bbf02c386f2758cc5dfd197fc7272430902b0c90a4b365ab3a1cc5066a616bc50ad29ceecba6f23dc85bd277e5\rSERVER_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 3c17149401c2b3878cbe3105164d362bba2e098e0d1de09bf69939568a2c69133c0ddc1c8fa76903e5e293b1197a01fb\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 6ae0594f0c38c3abf6a65b428f00347c6aee8b60a54fd702458ab439c6f718c58bdf55b92c42b3d968663e385922294b\rEXPORTER_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a e668b4888a058ce00a93da55ac690365336ee6cf331ad2ae97e0b8c837cf0b449aed4940ee2a3ab56c045056c1d5574d\rSERVER_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 7bd47384a53931188daab512bb59cedfd2f309ed189f80ad737f4465cd00fb472cc11992204c2252d534ffc9b48bc097\rCLIENT_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a cd9ed62e171e71d65580455e7ce374a2a91e15f3f889441144c23b2a54e6c4b2daf98e09525c317d871686872a5f2d81\rSERVER_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 330b459fed7217708e8163baf5eabe6a34a45bbf3d4c1bde32f7bcce29016bec85539ee7724c73d23cbaaa5f8e100a34\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff e106db0914f10fc6612d4b1cbdeb92bffc3ec4c21ab906a17a3a060b7a5d91e805a41b98822f9a6482e8eb510fb37ba4\rEXPORTER_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff cc32ae2d7a1bd46bc38569ebf0987e36b4ef1037f5280099a80e3ee5cf83a0be1d8283f5d925e12c78b27660de63cc9f\rSERVER_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 2be00b20bdf6157af69c6bac8806d5dfb6c13a3cfa9d314c73d46ead360f3a9c1562eb2eb1a073c86fab2ceda4da2a56\rCLIENT_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 7505e76f6398b39352003bbc3268a36a137ef4ecb2a795a8f53e9a77fdf57b5b1e2793f2ed6cb721e991920d87607aa7\rSERVER_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 c96ade516607c05ac9b5016caf4d554ba26c8b540c37eb5d4c6a4f1849b4e50da20614cf55909d0998e744a4b0e9e276\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 658902e283b741d5057db588d38b0d565fe3479bb242a7b93ec614f94d142b86608c9b6e6e93794c28e06ab7a12e3382\rEXPORTER_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 4e5196a9c611ae860f8b8b7d16f8130fcfdacdf899831997e7a410e18d2d9b19f5eaa2aa79b868b5b6bad29a84e97fff\rSERVER_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 aac75064ad90e8b08818e4c6d0b895639f78f89d5ea9e3bc780b9fc295f2430fd4edb30eef91202bcc61b19774bcbdd9\rCLIENT_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 062684c5b1bcb1ba7b1997c88694d06f81a250f7bb90b9c0214989753eca11c2308a0e5431d6c80607ad5cd7f83ad98d\r"
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 01-01 00-00> (80 ms)
+# [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_false
+# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_false (71 ms)
+# [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_false
+# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_false (70 ms)
+# [----------] 4 tests from TlsKeyLogging/TlsKeyLoggingEnd2EndTest (289 ms total)
 #
-# Confirmed in 1.41.0 2021-10-12
+# [----------] Global test environment tear-down
+# [==========] 4 tests from 1 test suite ran. (289 ms total)
+# [  PASSED  ] 2 tests.
+# [  FAILED  ] 2 tests, listed below:
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 00-01 00-00>
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 01-01 00-00>
+#
+# Confirmed in 1.46.0 2022-05-10
+tls_key_export
+
+# Unexplained, flaky:
+#
+# [ RUN      ] XdsTest/XdsSecurityTest.TestTlsConfigurationWithRootPluginUpdate/V3XdsCreds
+# E0514 12:41:31.427154539 3509119 ssl_transport_security.cc:1910] No match found for server name: server.example.com.
+# *** SIGSEGV received at time=1652532091 on cpu 4 ***
+# PC: @     0x7f2f65694f88  (unknown)  grpc_core::CertificateProviderStore::CertificateProviderWrapper::interested_parties()
+#     @               0x34  (unknown)  (unknown)
+#
+# Confirmed in 1.46.1 2022-05-14 (on at least x86_64 and s390x)
 xds_end2end
 
 EOF
@@ -1588,72 +1365,39 @@ find %{_vpath_builddir} -type f -perm /0111 -name '*_test' | sort |
   do
     echo "==== $(date -u --iso-8601=ns): $(basename "${testexe}") ===="
     %{__python3} tools/run_tests/start_port_server.py
-    # We have tried to skip all tests that hang, but since this is a common
-    # problem, we use timeout so that a test that does hang breaks the build in
-    # a reasonable amount of time.
-    timeout -k 11m -v 10m "${testexe}"
+
+%if %{without gdb}
+    # There is a history of some tests failing by hanging. We use “timeout” so
+    # that a test that does hang breaks the build in a vagurely reasonable
+    # amount of time. Some tests really can be slow, so the timeout is long!
+    timeout -k 61m -v 60m \
+%if %{with valgrind}
+        valgrind --trace-children=yes --leak-check=full --track-origins=yes \
+%endif
+        "${testexe}"
+%else
+    # Script gdb to run the test file and record any backtrace. Note that this
+    # reports an error when tests fail, because there is no stack on which to
+    # report a backtrace after the test exits successfully, and that this keeps
+    # going after a test fails, because we ignore the mentioned error. A
+    # cleverer gdb script would be nice, but this is good enough for the
+    # intended purpose.
+    tee "${testexe}-script.gdb" <<EOF
+set pagination off
+set logging file ${testexe}-gdb.log
+set logging on
+file ${testexe}
+run
+bt -full
+set logging off
+quit
+EOF
+    gdb -q -x "${testexe}-script.gdb" --batch </dev/null || :
+%endif
   done
 
 # Stop the port server
 curl "http://localhost:${PORT_SERVER_PORT}/quitquitquit" || :
-%endif
-
-# Work around problems in generated tests; we could not fix them in %%prep
-# because the test implementations did not exist yet.
-
-%ifarch ppc64le
-# Confirmed in 1.41.0 2021-10-01 (likely flaky)
-# protoc_plugin._python_plugin_test.SimpleStubsPluginTest.testUnaryCall
-# traceback:
-# Traceback (most recent call last):
-#   File "/usr/lib64/python3.10/unittest/case.py", line 59, in testPartExecutor
-#     yield
-#   File "/usr/lib64/python3.10/unittest/case.py", line 591, in run
-#     self._callTestMethod(testMethod)
-#   File "/usr/lib64/python3.10/unittest/case.py", line 549, in _callTestMethod
-#     method()
-#   File "/builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
-#       protoc_plugin/_python_plugin_test.py", line 548, in testUnaryCall
-#     response = service_pb2_grpc.TestService.UnaryCall(
-#   File "/builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
-#       protoc_plugin/protos/service/test_service_pb2_grpc.py", line 140, in UnaryCall
-#     return grpc.experimental.unary_unary(request, target,
-#             '/grpc_protoc_plugin.TestService/UnaryCall',
-#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
-#       python3.10/site-packages/grpc/experimental/__init__.py", line 77, in _wrapper
-#     return f(*args, **kwargs)
-#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
-#       python3.10/site-packages/grpc/_simple_stubs.py", line 242, in unary_unary
-#     return multicallable(request,
-#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
-#       python3.10/site-packages/grpc/_channel.py", line 946, in __call__
-#     return _end_unary_response_blocking(state, call, False, None)
-#   File "/builddir/build/BUILDROOT/grpc-1.41.0-2.fc36.ppc64le/usr/lib64/
-#       python3.10/site-packages/grpc/_channel.py", line 849, in
-#         _end_unary_response_blocking
-#     raise _InactiveRpcError(state)
-# grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
-#       status = StatusCode.UNAVAILABLE
-#       details = "Broken pipe"
-#       debug_error_string = "{"created":"@1633121043.829503175",
-#         "description":"Error received from peer ipv6:[::1]:42049",
-#         "file":"src/core/lib/surface/call.cc","file_line":1069,
-#         "grpc_message":"Broken pipe","grpc_status":14}"
-# >
-# stdout:
-# stderr:
-# /builddir/build/BUILD/grpc-1.41.0/src/python/grpcio_tests/tests/
-#     protoc_plugin/protos/service/test_service_pb2_grpc.py:140:
-#     ExperimentalApiWarning: 'unary_unary' is an experimental API. It is
-#     subject to change or removal between minor releases. Proceed with
-#     caution.
-#   return grpc.experimental.unary_unary(request, target,
-#           '/grpc_protoc_plugin.TestService/UnaryCall',
-sed -r -i -e "s/^([[:blank:]]*)(def UnaryCall\(request,)$/\
-\\1@unittest.skip('Broken pipe')\\n\\1\\2/" \
-    -e "s/^(import grpc)$/\\1\\nimport unittest/" \
-    "src/python/grpcio_tests/tests/protoc_plugin/protos/service/\
-test_service_pb2_grpc.py"
 %endif
 
 pushd src/python/grpcio_tests
@@ -1694,7 +1438,7 @@ fi
 
 
 %files
-%license LICENSE NOTICE.txt
+%license LICENSE NOTICE.txt LICENSE-utf8_range
 %{_libdir}/libaddress_sorting.so.%{c_so_version}*
 %{_libdir}/libgpr.so.%{c_so_version}*
 %{_libdir}/libgrpc.so.%{c_so_version}*
@@ -1727,7 +1471,7 @@ fi
 %if %{with core_tests}
 %files cli
 %{_bindir}/grpc_cli
-%{_libdir}/libgrpc++_test_config.so.%{cpp_so_version}*
+%{_libdir}/libgrpc++_test_config.so.%{cpp_so_version}
 %{_mandir}/man1/grpc_cli.1*
 %{_mandir}/man1/grpc_cli-*.1*
 %endif
@@ -1767,53 +1511,54 @@ fi
 
 
 %files -n python3-grpcio
-%license LICENSE NOTICE.txt
+%license LICENSE NOTICE.txt LICENSE-utf8_range
 %{python3_sitearch}/grpc
-%{python3_sitearch}/grpcio-%{version}-py%{python3_version}.egg-info
+%{python3_sitearch}/grpcio-%{pyversion}-py%{python3_version}.egg-info
 
 
 %files -n python3-grpcio-tools
+%license LICENSE NOTICE.txt LICENSE-utf8_range
 %{python3_sitearch}/grpc_tools
-%{python3_sitearch}/grpcio_tools-%{version}-py%{python3_version}.egg-info
+%{python3_sitearch}/grpcio_tools-%{pyversion}-py%{python3_version}.egg-info
 
 
 %if %{without bootstrap}
 %files -n python3-grpcio-admin
 %{python3_sitelib}/grpc_admin
-%{python3_sitelib}/grpcio_admin-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_admin-%{pyversion}-py%{python3_version}.egg-info
 %endif
 
 
 %files -n python3-grpcio-channelz
 %{python3_sitelib}/grpc_channelz
-%{python3_sitelib}/grpcio_channelz-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_channelz-%{pyversion}-py%{python3_version}.egg-info
 
 
 %if %{without bootstrap}
 %files -n python3-grpcio-csds
 %{python3_sitelib}/grpc_csds
-%{python3_sitelib}/grpcio_csds-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_csds-%{pyversion}-py%{python3_version}.egg-info
 %endif
 
 
 %files -n python3-grpcio-health-checking
 %{python3_sitelib}/grpc_health
-%{python3_sitelib}/grpcio_health_checking-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_health_checking-%{pyversion}-py%{python3_version}.egg-info
 
 
 %files -n python3-grpcio-reflection
 %{python3_sitelib}/grpc_reflection
-%{python3_sitelib}/grpcio_reflection-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_reflection-%{pyversion}-py%{python3_version}.egg-info
 
 
 %files -n python3-grpcio-status
 %{python3_sitelib}/grpc_status
-%{python3_sitelib}/grpcio_status-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_status-%{pyversion}-py%{python3_version}.egg-info
 
 
 %files -n python3-grpcio-testing
 %{python3_sitelib}/grpc_testing
-%{python3_sitelib}/grpcio_testing-%{version}-py%{python3_version}.egg-info
+%{python3_sitelib}/grpcio_testing-%{pyversion}-py%{python3_version}.egg-info
 
 
 %changelog
