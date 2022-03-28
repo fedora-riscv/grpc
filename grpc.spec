@@ -1435,6 +1435,11 @@ client_channel_stress
 client_lb_end2end
 %endif
 
+# Times out often enough to be annoying.
+#
+# Confirmed in 1.41.1 2022-03-28
+client_ssl
+
 # Unexplained:
 #
 # [ RUN      ] EvaluateArgsTest.EmptyMetadata
