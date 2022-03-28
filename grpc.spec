@@ -688,6 +688,11 @@ echo '' > etc/roots.pem
 #     examples/android/helloworld/gradle/wrapper/gradle-wrapper.jar
 rm -rvf examples/android src/android
 
+# Drop the NodeJS example’s package-lock.json file, which will hopefully keep
+# us from having bugs filed due to CVE’s in its (unpackaged) recursive
+# dependencies.
+rm -vf examples/node/package-lock.json
+
 # Remove unwanted .gitignore files, generally in examples. One could argue that
 # a sample .gitignore file is part of the example, but, well, we’re not going
 # to do that.
