@@ -397,6 +397,7 @@ Summary:        C++ language bindings for gRPC
 # License:        same as base package
 
 Requires:       grpc%{?_isa} = %{version}-%{release}
+Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
 Provides:       bundled(upb)
 
@@ -409,6 +410,7 @@ Summary:        Protocol buffers compiler plugins for gRPC
 # License:        same as base package
 
 Requires:       grpc%{?_isa} = %{version}-%{release}
+Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 Requires:       protobuf-compiler
 
 Provides:       bundled(upb)
