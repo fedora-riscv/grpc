@@ -395,7 +395,10 @@ For rendered HTML documentation, please see https://grpc.io/docs/.
 %package cpp
 Summary:        C++ language bindings for gRPC
 # License:        same as base package
+
 Requires:       grpc%{?_isa} = %{version}-%{release}
+
+Provides:       bundled(upb)
 
 %description cpp
 C++ language bindings for gRPC.
@@ -404,8 +407,11 @@ C++ language bindings for gRPC.
 %package plugins
 Summary:        Protocol buffers compiler plugins for gRPC
 # License:        same as base package
+
 Requires:       grpc%{?_isa} = %{version}-%{release}
 Requires:       protobuf-compiler
+
+Provides:       bundled(upb)
 
 %description plugins
 Plugins to the protocol buffers compiler to generate gRPC sources.
@@ -414,7 +420,10 @@ Plugins to the protocol buffers compiler to generate gRPC sources.
 %package cli
 Summary:        Command-line tool for gRPC
 # License:        same as base package
+
 Requires:       grpc%{?_isa} = %{version}-%{release}
+
+Provides:       bundled(upb)
 
 %description cli
 The command line tool can do the following things:
@@ -462,8 +471,12 @@ Summary:        Python language bindings for gRPC
 # License:        same as base package
 
 # Note that the Python package has no runtime dependency on the base C library;
-# everything it needs is bundled.
+# everything it needs is linked statically. It is not practical to change this,
+# and since they both come from the same source RPM, we do not need to attempt
+# to do so.
 Requires:       grpc-data = %{version}-%{release}
+
+Provides:       bundled(upb)
 
 %description -n python3-grpcio
 Python language bindings for gRPC (HTTP/2-based RPC framework).
@@ -476,6 +489,8 @@ Python language bindings for gRPC (HTTP/2-based RPC framework).
 %package -n python3-grpcio-tools
 Summary:       Package for gRPC Python tools
 # License:        same as base package
+
+Provides:       bundled(upb)
 
 %description -n python3-grpcio-tools
 Package for gRPC Python tools.
