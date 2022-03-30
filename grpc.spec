@@ -389,6 +389,7 @@ For rendered HTML documentation, please see https://grpc.io/docs/.
 Summary:        C++ language bindings for gRPC
 # License:        same as base package
 Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
 
 %description cpp
 C++ language bindings for gRPC.
@@ -398,6 +399,7 @@ C++ language bindings for gRPC.
 Summary:        Protocol buffers compiler plugins for gRPC
 # License:        same as base package
 Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
 Requires:       protobuf-compiler
 
 %description plugins
