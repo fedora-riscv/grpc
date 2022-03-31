@@ -16,7 +16,7 @@ diff -Naur grpc-1.40.0-original/setup.py grpc-1.40.0/setup.py
 +# Export this variable to use the system installation of abseil. You need to
 +# have the header files installed (in /usr/include/absl) and during
 +# runtime, the shared library must be installed
-+BUILD_WITH_SYSTEM_ABSL = os.environ.get('GRPC_PYTHON_BUILD_SYSTEM_ABSL', False)
++BUILD_WITH_SYSTEM_ABSL = os.environ.get('GRPC_PYTHON_BUILD_SYSTEM_ABSL', '0') in ('1', 'True')
 +
  # Export this variable to force building the python extension with a statically linked libstdc++.
  # At least on linux, this is normally not needed as we can build manylinux-compatible wheels on linux just fine
