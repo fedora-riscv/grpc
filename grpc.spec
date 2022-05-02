@@ -740,26 +740,6 @@ sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 echo '===== Patching to skip certain broken tests =====' 2>&1
 
-%ifarch %{ix86} %{arm32}
-# Confirmed in 1.41.0 2021-10-01 (in %%{arm32} only)
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def test_concurrent_stream_stream)\\b/\
-\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/testing/_client_test.py'
-%endif
-
-%ifarch %{ix86} %{arm32}
-# Confirmed in 1.41.0 2021-10-05
-# These tests fail with:
-#   OverflowError: Python int too large to convert to C ssize_t
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i \
-    "s/^([[:blank:]]*)(def test(SSLSessionCacheLRU|SessionResumption))\\b/\
-\\1@unittest.skip('Unexplained overflow error on 32-bit')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_auth_context_test.py' \
-    'src/python/grpcio_tests/tests/unit/_session_cache_test.py'
-%endif
-
 # Confirmed in 1.41.0 2021-10-08 (on aarch64 and s390x)
 # These tests can be flaky and may fail only sometimes. Failures have been seen
 # on all architectures.
@@ -827,14 +807,6 @@ sed -r -i "s/^([[:blank:]]*)(def test_(can_configure_logger|grpc_logger|\
 handler_found|logger_not_occupied))\\b/\
 \\1@unittest.skip('Child process exits with code 64')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_logging_test.py'
-%endif
-
-%ifarch %{ix86} %{arm32}
-# Confirmed in 1.41.0 2021-10-05
-# TODO figure out how to report this upstream in a useful/actionable way
-sed -r -i "s/^([[:blank:]]*)(def testCancelManyCalls)\\b/\
-\\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
-    'src/python/grpcio_tests/tests/unit/_cython/_cancel_many_calls_test.py'
 %endif
 
 
@@ -1049,6 +1021,20 @@ cp -rvp doc examples '%{buildroot}%{_pkgdocdir}'
 
 
 %check
+%ifarch %{ix86}
+
+cat <<'EOF'
+Since the following changes are accepted for F37:
+
+https://fedoraproject.org/wiki/Changes/RetireARMv7
+https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
+
+…we still build for i686 since this is not a leaf packages, but skip tests so
+we do not have to keep track of 32-bit-specific issues.
+EOF
+
+%else
+
 export FEDORA_NO_NETWORK_TESTS=1
 
 %if %{with core_tests}
@@ -1284,40 +1270,7 @@ alts_util
 alts_zero_copy_grpc_protector
 %endif
 
-%ifarch %{ix86} %{arm32}
-# Unexplained:
-#
-# [ RUN      ] CertificateProviderStoreTest.Basic
-# E0809 18:01:00.777880860  323759 certificate_provider_store.cc:67]
-#   Certificate provider factory fake2 not found
-# [       OK ] CertificateProviderStoreTest.Basic (1 ms)
-# [ RUN      ] CertificateProviderStoreTest.Multithreaded
-# terminate called without an active exception
-# *** SIGABRT received at time=1628532060 on cpu 0 ***
-# PC: @ 0xf7f9d559  (unknown)  __kernel_vsyscall
-#
-# Confirmed in 1.41.0 2021-10-10
-certificate_provider_store
-%endif
-
-%ifarch %{ix86}
-# Unexplained:
-#
-# [ RUN      ] ChannelTracerTest.TestMultipleEviction
-# /builddir/build/BUILD/grpc-1.39.0/test/core/channel/channel_trace_test.cc:65:
-#   Failure
-# Expected equality of these values:
-#   array.array_value().size()
-#     Which is: 3
-#   expected
-#     Which is: 4
-# [  FAILED  ] ChannelTracerTest.TestMultipleEviction (1 ms)
-#
-# Confirmed in 1.41.0 2021-10-10
-channel_trace
-%endif
-
-%ifarch ppc64le %{arm32} %{arm64} s390x
+%ifarch ppc64le %{arm64} s390x
 # Unexplained:
 #
 # ppc64le, aarch64:
@@ -1368,7 +1321,7 @@ channel_trace
 #     @     0x7fff923f19e8         32  absl::lts_20210324::GetStackFramesWithContext()
 #     @ ... and at least 1000 more frames
 #
-# armv7hl, s390x:
+# s390x:
 #
 # E0811 15:35:58.278096553   31424 grpclb.cc:1055]             [grpclb 0xfe65c0] lb_calld=0xfe9778: Invalid LB response received: ''. Ignoring.
 # E0811 15:35:58.966844494   31575 tcp_server_posix.cc:216]    Failed accept4: Too many open files
@@ -1444,136 +1397,6 @@ client_lb_end2end
 # Confirmed in 1.41.1 2022-03-28
 client_ssl
 
-%ifarch %{arm32} %{ix86}
-# Unexplained:
-#
-# [ RUN      ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#    End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0
-# /builddir/build/BUILD/grpc-1.41.0/test/core/transport/binder/end2end/
-#    end2end_binder_transport_test.cc:188: Failure
-# Expected equality of these values:
-#   cnt
-#     Which is: 0
-#   end2end_testing::EchoServer::kServerStreamingCounts
-#     Which is: 100
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0 (3 ms)
-# [… etc. …]
-# [  FAILED  ] 18 tests, listed below:
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ServerStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.ClientStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/0,
-#   where GetParam() = 0
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/1,
-#   where GetParam() = 10ns
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/2,
-#   where GetParam() = 10us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/3,
-#   where GetParam() = 100us
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/4,
-#   where GetParam() = 1ms
-# [  FAILED  ] End2EndBinderTransportTestWithDifferentDelayTimes/
-#   End2EndBinderTransportTest.BiDirStreamingCallThroughFakeBinderChannel/5,
-#   where GetParam() = 20ms
-#
-# Confirmed in 1.41.0 2021-09-29
-end2end_binder_transport
-%endif
-
 # Unexplained:
 #
 # [ RUN      ] EvaluateArgsTest.EmptyMetadata
@@ -1595,7 +1418,7 @@ end2end_binder_transport
 # Confirmed in 1.41.0 2021-10-10
 evaluate_args
 
-%ifarch x86_64 %{ix86}
+%ifarch x86_64
 # Unexplained:
 #
 # [ RUN      ] ExamineStackTest.AbseilStackProvider
@@ -1635,18 +1458,6 @@ examine_stack
 goaway_server
 %endif
 
-%ifarch %{ix86} %{arm32}
-# Unexplained:
-#
-# [ RUN      ] GrpcTlsCertificateDistributorTest.SetKeyMaterialsInCallback
-# terminate called without an active exception
-# *** SIGABRT received at time=1628556696 on cpu 3 ***
-# PC: @ 0xf7fa9559  (unknown)  __kernel_vsyscall
-#
-# Confirmed in 1.41.0 2021-10-11
-grpc_tls_certificate_distributor
-%endif
-
 # Unexplained:
 #
 # [ RUN      ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet
@@ -1680,17 +1491,6 @@ grpc_tool
 httpcli
 httpscli
 
-%ifarch %{ix86} %{arm32}
-# Unexplained:
-#
-# /builddir/build/BUILD/grpc-1.39.0/test/cpp/server/load_reporter/get_cpu_stats_test.cc:39: Failure
-# Expected: (busy) <= (total), actual: 9034196912422118975 vs 3761728973136652623
-# [  FAILED  ] GetCpuStatsTest.BusyNoLargerThanTotal (0 ms)
-#
-# Confirmed in 1.41.0 2021-10-11
-lb_get_cpu_stats
-%endif
-
 %ifarch s390x
 # Unexplained:
 #
@@ -1712,7 +1512,7 @@ lb_get_cpu_stats
 murmur_hash
 %endif
 
-%ifarch x86_64 %{ix86}
+%ifarch x86_64
 # Unexplained:
 #
 # [ RUN      ] StackTracerTest.Basic
@@ -1876,6 +1676,8 @@ do
       %{__python3} %{py_setup} %{?py_setup_args} "${suite}"
 done
 popd
+
+%endif
 
 %if %{without system_gtest}
 # As a sanity check for our claim that gtest/gmock are not bundled, check
