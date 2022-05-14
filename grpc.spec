@@ -19,7 +19,7 @@
 # the proto compilers in this package; the consequence is that we cannot build
 # the python3-grpcio-admin or python3-grpcio-csds subpackages until after
 # bootstrapping.
-%bcond_with bootstrap
+%bcond_without bootstrap
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
 # the tests by upstream. This is mentioned in
@@ -307,6 +307,33 @@ Patch:          %{forgeurl}/pull/29359.patch
 # “Segfault in client_lb_end2end_test due to absl::string_view(nullptr)”
 # https://github.com/grpc/grpc/issues/29567
 Patch:          %{forgeurl}/pull/29568.patch
+# EPEL9-specific patch to work around:
+#
+# ../test/cpp/end2end/rls_server.cc: In function 'grpc::lookup::v1::RouteLookupResponse grpc::testing::BuildRlsResponse(std::vector<std::__cxx11::basic_string<char> >, const char*)':
+# ../test/cpp/end2end/rls_server.cc:97:34: error: no matching function for call to 'google::protobuf::RepeatedPtrField<std::__cxx11::basic_string<char> >::Add(std::vector<std::__cxx11::basic_string<char> >::iterator, std::vector<std::__cxx11::basic_string<char> >::iterator)'
+#    97 |   response.mutable_targets()->Add(targets.begin(), targets.end());
+#       |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# In file included from /usr/include/google/protobuf/implicit_weak_message.h:39,
+#                  from /usr/include/google/protobuf/parse_context.h:42,
+#                  from /usr/include/google/protobuf/map_type_handler.h:34,
+#                  from /usr/include/google/protobuf/map.h:56,
+#                  from /usr/include/google/protobuf/generated_message_table_driven.h:34,
+#                  from gens/src/proto/grpc/lookup/v1/rls.pb.h:26,
+#                  from gens/src/proto/grpc/lookup/v1/rls.grpc.pb.h:22,
+#                  from ../test/cpp/end2end/rls_server.h:20,
+#                  from ../test/cpp/end2end/rls_server.cc:17:
+# /usr/include/google/protobuf/repeated_field.h:941:12: note: candidate: 'Element* google::protobuf::RepeatedPtrField<T>::Add() [with Element = std::__cxx11::basic_string<char>]'
+#   941 |   Element* Add();
+#       |            ^~~
+# /usr/include/google/protobuf/repeated_field.h:941:12: note:   candidate expects 0 arguments, 2 provided
+# /usr/include/google/protobuf/repeated_field.h:942:8: note: candidate: 'void google::protobuf::RepeatedPtrField<T>::Add(Element&&) [with Element = std::__cxx11::basic_string<char>]'
+#   942 |   void Add(Element&& value);
+#       |        ^~~
+# /usr/include/google/protobuf/repeated_field.h:942:8: note:   candidate expects 1 argument, 2 provided
+#
+# We have not reported this upstream because it works in Fedora with a current
+# protobuf package.
+Patch:          grpc-1.46.2-protobuf-3.14.0-RepeatedPtrField-Add-range.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -975,20 +1002,6 @@ cp -rvp doc examples '%{buildroot}%{_pkgdocdir}'
 
 
 %check
-%ifarch %{ix86}
-
-cat <<'EOF'
-Since the following changes are accepted for F37:
-
-https://fedoraproject.org/wiki/Changes/RetireARMv7
-https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
-
-…we still build for i686 since this is not a leaf packages, but skip tests so
-we do not have to keep track of 32-bit-specific issues.
-EOF
-
-%else
-
 export FEDORA_NO_NETWORK_TESTS=1
 
 %if %{with core_tests}
@@ -1185,6 +1198,166 @@ alts_iovec_record_protocol
 alts_zero_copy_grpc_protector
 %endif
 
+%ifarch aarch64 ppc64le s390x
+# Unexplained (EPEL9 only):
+#
+# aarch64:
+#
+# E0520 13:28:14.548926683 2647909 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.548926833 2647779 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.595077604 2647782 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.648119479 2647908 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.749502403 2647905 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.902166294 2647773 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:14.952953893 2647782 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:28:15.547804374 2647791 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# terminate called after throwing an instance of 'std::runtime_error'
+#   what():  random_device::random_device(const std::string&): device not available
+# *** SIGABRT received at time=1653053295 on cpu 28 ***
+# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
+# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0xffffa3fd9080 while already in AbslFailureSignalHandler()
+# [… 17827 similar three-line blocks omitted …]
+# *** SIGABRT received at time=1653053301 on cpu 28 ***
+# PC: @     0xffffa3fd9080  (unknown)  __pthread_kill_implementation
+#     @     0xffffa3df9750       4800  (unknown)
+#     @     0xffffa4efc7ec        208  (unknown)
+#     @     0xffffa3f944ec         32  gsignal
+#     @     0xffffa3f7bd30        336  abort
+#     @     0xffffa36ef1cc       3216  (unknown)
+#     @     0xffffa36ef248        256  absl::lts_20211102::raw_logging_internal::RawLog()
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_debugging_internal.so.2111.0.0: open failed: errno=24
+#     @     0xffffa351e1f0        160  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da7358         48  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da73dc         96  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da750c         16  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_failure_signal_handler.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3df94c8        464  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_failure_signal_handler.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3df9750  (unknown)  (unknown)
+#     @     0xffffa4efc7ec        208  (unknown)
+#     @     0xffffa3f944ec         32  gsignal
+#     @     0xffffa3f7bd30        336  abort
+#     @     0xffffa36ef1cc       3216  (unknown)
+#     @     0xffffa36ef248        256  absl::lts_20211102::raw_logging_internal::RawLog()
+#     @     0xffffa351e1f0        160  absl::lts_20211102::debugging_internal::AddressIsReadable()
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da7358         48  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da73dc         96  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_stacktrace.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3da750c         16  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_failure_signal_handler.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3df94c8        464  (unknown)
+# [symbolize_elf.inc : 1280] RAW: /usr/lib64/libabsl_failure_signal_handler.so.2111.0.0: open failed: errno=24
+#     @     0xffffa3df9750  (unknown)  (unknown)
+#     @     0xffffa4efc7ec        208  (unknown)
+#     @     0xffffa3f944ec         32  gsignal
+#     @     0xffffa3f7bd30        336  abort
+#     @     0xffffa36ef1cc       3216  (unknown)
+#     @     0xffffa36ef248        256  absl::lts_20211102::raw_logging_internal::RawLog()
+#     @     0xffffa351e1f0        160  absl::lts_20211102::debugging_internal::AddressIsReadable()
+#     @     0xffffa3da7358         48  (unknown)
+#     @     0xffffa3da73dc         96  (unknown)
+#     @     0xffffa3da750c         16  absl::lts_20211102::GetStackFramesWithContext()
+#     @ ... and at least 200 more frames
+#
+# ppc64le:
+#
+# E0520 13:41:56.823280455  670749 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.823946978  670881 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.824023028  670880 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.824232961  670776 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.824360062  670773 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.824929562  670886 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.824992583  670749 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.829475610  670881 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.875571582  670752 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:56.980284646  670755 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:57.082101996  670879 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:57.133542671  670887 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:57.292037605  670884 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 13:41:57.840202100  670755 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# terminate called after throwing an instance of 'std::runtime_error'
+#   what():  random_device::random_device(const std::string&): device not available
+# *** SIGABRT received at time=1653054117 on cpu 2 ***
+# [address_is_readable.cc : 96] RAW: Failed to create pipe, errno=24
+# [failure_signal_handler.cc : 331] RAW: Signal 6 raised at PC=0x7fff91f66efc while already in AbslFailureSignalHandler()
+# [… 34232 similar three-line blocks omitted …]
+# *** SIGABRT received at time=1653054123 on cpu 3 ***
+# PC: @     0x7fff91f66efc  (unknown)  __pthread_kill_implementation
+#     @     0x7fff91cc1a3c       4384  (unknown)
+#     @     0x7fff91f66f7c        224  __pthread_kill_implementation
+#     @     0x7fff91f0633c         48  gsignal
+#     @     0x7fff91ee076c        336  abort
+#     @     0x7fff913a12b8       3200  (unknown)
+#     @     0x7fff913a1310         48  absl::lts_20211102::raw_logging_internal::RawLog()
+#     @     0x7fff910e24c4        272  absl::lts_20211102::debugging_internal::AddressIsReadable()
+#     @     0x7fff91c51558        176  (unknown)
+#     @     0x7fff91c51720        112  (unknown)
+#     @     0x7fff91c51a18         32  absl::lts_20211102::GetStackFramesWithContext()
+#     @     0x7fff91cc16e4        480  (unknown)
+#     @     0x7fff91cc1a3c  (unknown)  (unknown)
+#     @     0x7fff91f66f7c        224  __pthread_kill_implementation
+#     @     0x7fff91f0633c         48  gsignal
+#     @     0x7fff91ee076c        336  abort
+#     @     0x7fff913a12b8       3200  (unknown)
+#     @     0x7fff913a1310         48  absl::lts_20211102::raw_logging_internal::RawLog()
+#     @     0x7fff910e24c4        272  absl::lts_20211102::debugging_internal::AddressIsReadable()
+#     @     0x7fff91c51558        176  (unknown)
+#     @     0x7fff91c51720        112  (unknown)
+#     @     0x7fff91c51a18         32  absl::lts_20211102::GetStackFramesWithContext()
+#     @     0x7fff91cc16e4        480  (unknown)
+#     @     0x7fff91cc1a3c  (unknown)  (unknown)
+#     @     0x7fff91f66f7c        224  __pthread_kill_implementation
+#     @     0x7fff91f0633c         48  gsignal
+#     @     0x7fff91ee076c        336  abort
+#     @     0x7fff913a12b8       3200  (unknown)
+#     @     0x7fff913a1310         48  absl::lts_20211102::raw_logging_internal::RawLog()
+#     @     0x7fff910e24c4        272  absl::lts_20211102::debugging_internal::AddressIsReadable()
+#     @     0x7fff91c51558        176  (unknown)
+#     @     0x7fff91c51720        112  (unknown)
+#     @     0x7fff91c51a18         32  absl::lts_20211102::GetStackFramesWithContext()
+#     @ ... and at least 1000 more frames
+#
+# s390x
+#
+# E0520 14:55:38.075589878 2008339 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:38.115523588 2008365 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:38.220459390 2008198 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:38.273140893 2008354 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:38.541933196 2008349 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:38.705084891 2008349 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# E0520 14:55:39.071924831 2008349 tcp_server_posix.cc:216]    Failed accept4: Too many open files
+# terminate called after throwing an instance of 'std::runtime_error'
+#   what():  random_device::random_device(const std::string&): device not available
+# *** SIGABRT received at time=1653058539 on cpu 0 ***
+# [symbolize_elf.inc : 979] RAW: /proc/self/task/2008153/maps: errno=24
+# PC: @      0x3ff914a8356  (unknown)  (unknown)
+#     @      0x3ff90f81574  (unknown)  (unknown)
+#     @      0x3ff90f817e0  (unknown)  (unknown)
+#     @      0x3ff928fe490  (unknown)  (unknown)
+#     @      0x3ff914a8356  (unknown)  (unknown)
+#     @      0x3ff91458c90  (unknown)  (unknown)
+#     @      0x3ff914326d0  (unknown)  (unknown)
+#     @      0x3ff9173f0d8  (unknown)  (unknown)
+#     @      0x3ff9173c90e  (unknown)  (unknown)
+#     @      0x3ff9173c998  (unknown)  (unknown)
+#     @      0x3ff9173ccc6  (unknown)  (unknown)
+#     @      0x3ff9172d534  (unknown)  (unknown)
+#     @      0x3ff917718c8  (unknown)  (unknown)
+#     @      0x2aa39973244  (unknown)  (unknown)
+#     @      0x2aa399223ca  (unknown)  (unknown)
+#     @      0x3ff91438c42  (unknown)  (unknown)
+#     @      0x3ff91438d1e  (unknown)  (unknown)
+#     @      0x2aa39922b10  (unknown)  (unknown)
+#
+# Confirmed in 1.46.2 2022-05-20 (EPEL9)
+client_channel_stress
+%endif
+
 # Unexplained, flaky:
 #
 # (hangs indefinitely, timeout triggered)
@@ -1283,17 +1456,42 @@ murmur_hash
 stack_tracer
 %endif
 
-%ifarch aarch64 x86_64 ppc64le
+%ifarch aarch64 x86_64 ppc64le s390x
 # Unexplained:
 #
 # This may be flaky and sometimes succeed; this was known to be the case on
 # ppc64le in older versions.
+#
+# aarch64, x86_64, ppc64le:
 #
 # [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
 # E0509 16:23:59.122730405 3124460 oauth2_credentials.cc:165]  Call to http server ended with error 401 [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,  "token_type":"Bearer"}].
 # *** SIGSEGV received at time=1652113439 on cpu 3 ***
 # PC: @     0x7f13bf51165c  (unknown)  __strlen_evex
 #     @               0x33  (unknown)  (unknown)
+#
+# s390x (EPEL9 only):
+#
+# [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
+# E0520 19:39:29.709945032 2075725 oauth2_credentials.cc:165]  Call to http server ended with error 401 [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,  "token_type":"Bearer"}].
+# *** SIGSEGV received at time=1653075569 on cpu 1 ***
+# PC: @      0x3ff98feff4c  (unknown)  grpc_oauth2_token_fetcher_credentials_parse_server_response()
+#     @      0x3ff97e01574  (unknown)  (unknown)
+#     @      0x3ff97e017e0  (unknown)  (unknown)
+#     @      0x3ff992fe490  (unknown)  (unknown)
+#     @      0x3ff98feff4c  (unknown)  grpc_oauth2_token_fetcher_credentials_parse_server_response()
+#     @      0x2aa3b4abb90  (unknown)  grpc_core::(anonymous namespace)::CredentialsTest_TestOauth2TokenFetcherCredsParsingEmptyHttpBody_Test::TestBody()
+#     @      0x2aa3b50f766  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa3b4fcbfa  (unknown)  testing::Test::Run()
+#     @      0x2aa3b4fcea0  (unknown)  testing::TestInfo::Run()
+#     @      0x2aa3b4fd794  (unknown)  testing::TestSuite::Run()
+#     @      0x2aa3b503898  (unknown)  testing::internal::UnitTestImpl::RunAllTests()
+#     @      0x2aa3b50fcf6  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa3b4fcfe2  (unknown)  testing::UnitTest::Run()
+#     @      0x2aa3b49ea1e  (unknown)  main
+#     @      0x3ff97eb8c42  (unknown)  __libc_start_call_main
+#     @      0x3ff97eb8d1e  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa3b4a3d00  (unknown)  (unknown)
 #
 # Confirmed in 1.46.0 2022-05-09
 test_core_security_credentials
@@ -1421,8 +1619,6 @@ do
       %{__python3} %{py_setup} %{?py_setup_args} "${suite}"
 done
 popd
-
-%endif
 
 %if %{without system_gtest}
 # As a sanity check for our claim that gtest/gmock are not bundled, check
