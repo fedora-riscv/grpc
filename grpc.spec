@@ -33,7 +33,7 @@
 %ifnarch s390x
 %bcond_without python_gevent_tests
 %else
-# A signficant number of Python tests pass in test_lite but fail in
+# A significant number of Python tests pass in test_lite but fail in
 # test_gevent, mostly by dumping core without a traceback.  Since it is tedious
 # to enumerate these (and it is difficult to implement “suite-specific” skips
 # for shared tests, so the tests would have to be skipped in all suites), we
@@ -804,9 +804,9 @@ echo '===== Building C (core) and C++ components =====' 2>&1
 # ~~~~ Python ~~~~
 
 echo '===== Building Python grpcio package =====' 2>&1
-# Since there are some interdepndencies in the Python packages (e.g., many have
-# setup_requires: grpcio-tools), we do temporary installs of built packages
-# into a local directory as needed, and add it to the PYTHONPATH.
+# Since there are some interdependencies in the Python packages (e.g., many
+# have setup_requires: grpcio-tools), we do temporary installs of built
+# packages into a local directory as needed, and add it to the PYTHONPATH.
 PYROOT="${PWD}/%{_vpath_builddir}/pyroot"
 if [ -n "${PYTHONPATH-}" ]; then PYTHONPATH="${PYTHONPATH}:"; fi
 PYTHONPATH="${PYTHONPATH-}${PYROOT}%{python3_sitelib}"
