@@ -449,6 +449,7 @@ Summary:        Command-line tool for gRPC
 # License:        same as base package
 
 Requires:       grpc%{?_isa} = %{version}-%{release}
+Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
 Provides:       bundled(upb)
 Provides:       bundled(utf8_range)
