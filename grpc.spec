@@ -417,6 +417,7 @@ Plugins to the protocol buffers compiler to generate gRPC sources.
 Summary:        Command-line tool for gRPC
 # License:        same as base package
 Requires:       grpc%{?_isa} = %{version}-%{release}
+Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
 
 %description cli
 The command line tool can do the following things:
