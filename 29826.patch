@@ -1,0 +1,50 @@
+From 4138f4bc0347e090431d2476610cbbcaf1397f41 Mon Sep 17 00:00:00 2001
+From: "Benjamin A. Beasley" <code@musicinmybrain.net>
+Date: Fri, 27 May 2022 14:41:08 -0400
+Subject: [PATCH 1/2] Use gRPC_INSTALL_LIBDIR for pkgconfig files
+
+Fixes #25635.
+
+If grpc libraries are installed in <prefix>/lib64, then .pc files should
+be installed in <prefix>/lib64/pkgconfig. Before this commit, they were
+always installed in <prefix>/lib/pkgconfig.
+---
+ templates/CMakeLists.txt.template | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/templates/CMakeLists.txt.template b/templates/CMakeLists.txt.template
+index 9096d9125965..ee3e1782533b 100644
+--- a/templates/CMakeLists.txt.template
++++ b/templates/CMakeLists.txt.template
+@@ -850,7 +850,7 @@
+       "<%text>${output_filepath}</%text>"
+       @ONLY)
+     install(FILES "<%text>${output_filepath}</%text>"
+-      DESTINATION "lib/pkgconfig/")
++      DESTINATION "<%text>${gRPC_INSTALL_LIBDIR}/pkgconfig</%text>")
+   endfunction()
+ 
+   # gpr .pc file
+
+From 07a8e936c86b3852ebd14f6fccba53fdffb07a63 Mon Sep 17 00:00:00 2001
+From: "Benjamin A. Beasley" <code@musicinmybrain.net>
+Date: Fri, 27 May 2022 14:45:52 -0400
+Subject: [PATCH 2/2] Re-generate projects
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e7aa97e9fcff..76c9ef0eede9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19820,7 +19820,7 @@ function(generate_pkgconfig name description version requires
+     "${output_filepath}"
+     @ONLY)
+   install(FILES "${output_filepath}"
+-    DESTINATION "lib/pkgconfig/")
++    DESTINATION "${gRPC_INSTALL_LIBDIR}/pkgconfig")
+ endfunction()
+ 
+ # gpr .pc file

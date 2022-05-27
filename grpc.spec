@@ -307,6 +307,14 @@ Patch:          %{forgeurl}/pull/29359.patch
 # “Segfault in client_lb_end2end_test due to absl::string_view(nullptr)”
 # https://github.com/grpc/grpc/issues/29567
 Patch:          %{forgeurl}/pull/29568.patch
+# Use gRPC_INSTALL_LIBDIR for pkgconfig files
+# https://github.com/grpc/grpc/pull/29826
+#
+# Fixes:
+#
+# Should install pkgconfig files under gRPC_INSTALL_LIBDIR
+# https://github.com/grpc/grpc/issues/25635
+Patch:          %{forgeurl}/pull/29826.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -756,11 +764,6 @@ sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
     examples/cpp/*/CMakeLists.txt \
     tools/run_tests/artifacts/artifact_targets.py \
     tools/distrib/python/grpcio_tools/setup.py
-
-echo '===== Fixing .pc install path =====' 2>&1
-# Fix the install path for .pc files
-# https://github.com/grpc/grpc/issues/25635
-sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 
 %build
