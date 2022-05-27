@@ -290,6 +290,14 @@ Patch9:         https://github.com/grpc/grpc/pull/27516.patch
 # This fixes failure to compile on GCC 12.
 # https://github.com/grpc/grpc/pull/28589
 Patch10:        0001-Minimal-fix-for-invalid-implicit-absl-string_view-nu.patch
+# Use gRPC_INSTALL_LIBDIR for pkgconfig files
+# https://github.com/grpc/grpc/pull/29826
+#
+# Fixes:
+#
+# Should install pkgconfig files under gRPC_INSTALL_LIBDIR
+# https://github.com/grpc/grpc/issues/25635
+Patch11:          %{forgeurl}/pull/29826.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -719,11 +727,6 @@ sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
     tools/run_tests/artifacts/artifact_targets.py \
     tools/distrib/python/grpcio_tools/setup.py
 
-echo '===== Fixing .pc install path =====' 2>&1
-# Fix the install path for .pc files
-# https://github.com/grpc/grpc/issues/25635
-sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
-
 echo '===== Patching to skip certain broken tests =====' 2>&1
 
 %ifarch %{ix86} %{arm32}
@@ -822,7 +825,6 @@ sed -r -i "s/^([[:blank:]]*)(def testCancelManyCalls)\\b/\
 \\1@unittest.skip('May hang unexplainedly')\\n\\1\\2/" \
     'src/python/grpcio_tests/tests/unit/_cython/_cancel_many_calls_test.py'
 %endif
-
 
 %build
 # ~~~~ C (core) and C++ (cpp) ~~~~
