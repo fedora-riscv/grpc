@@ -334,6 +334,14 @@ Patch:          %{forgeurl}/pull/29568.patch
 # We have not reported this upstream because it works in Fedora with a current
 # protobuf package.
 Patch:          grpc-1.46.2-protobuf-3.14.0-RepeatedPtrField-Add-range.patch
+# Use gRPC_INSTALL_LIBDIR for pkgconfig files
+# https://github.com/grpc/grpc/pull/29826
+#
+# Fixes:
+#
+# Should install pkgconfig files under gRPC_INSTALL_LIBDIR
+# https://github.com/grpc/grpc/issues/25635
+Patch:          %{forgeurl}/pull/29826.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -783,11 +791,6 @@ sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
     examples/cpp/*/CMakeLists.txt \
     tools/run_tests/artifacts/artifact_targets.py \
     tools/distrib/python/grpcio_tools/setup.py
-
-echo '===== Fixing .pc install path =====' 2>&1
-# Fix the install path for .pc files
-# https://github.com/grpc/grpc/issues/25635
-sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 
 %build
