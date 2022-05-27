@@ -283,6 +283,14 @@ Patch7:         grpc-1.39.0-python2-test-scripts.patch
 # compatible with both 1.6.0 and 1.5.0, and upstream has not yet updated to
 # 1.6.0.
 Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
+# Use gRPC_INSTALL_LIBDIR for pkgconfig files
+# https://github.com/grpc/grpc/pull/29826
+#
+# Fixes:
+#
+# Should install pkgconfig files under gRPC_INSTALL_LIBDIR
+# https://github.com/grpc/grpc/issues/25635
+Patch9:         %{forgeurl}/pull/29826.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
@@ -718,11 +726,6 @@ sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
     examples/cpp/*/CMakeLists.txt \
     tools/run_tests/artifacts/artifact_targets.py \
     tools/distrib/python/grpcio_tools/setup.py
-
-echo '===== Fixing .pc install path =====' 2>&1
-# Fix the install path for .pc files
-# https://github.com/grpc/grpc/issues/25635
-sed -r -i 's|lib(/pkgconfig)|\${gRPC_INSTALL_LIBDIR}\1|' CMakeLists.txt
 
 echo '===== Patching to skip certain broken tests =====' 2>&1
 # Confirmed in 1.39.0 2021-07-29
