@@ -1,0 +1,30 @@
+From 56fd184b8db962a95574142aa2a8cf80df51bf6b Mon Sep 17 00:00:00 2001
+From: "Benjamin A. Beasley" <code@musicinmybrain.net>
+Date: Wed, 8 Jun 2022 17:03:51 -0400
+Subject: [PATCH] =?UTF-8?q?Replace=20deprecated=20Python=20=E2=80=9Cinspec?=
+ =?UTF-8?q?t.getargspec=E2=80=9D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This has been deprecated since Python 3.0 and is removed in Python 3.11.
+We can use “inspect.getfullargspec” instead.
+
+Fixes #29962.
+---
+ src/python/grpcio/grpc/_auth.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/python/grpcio/grpc/_auth.py b/src/python/grpcio/grpc/_auth.py
+index 2d38320afff6..67113ceb5867 100644
+--- a/src/python/grpcio/grpc/_auth.py
++++ b/src/python/grpcio/grpc/_auth.py
+@@ -30,7 +30,7 @@ def __init__(self, credentials):
+         self._credentials = credentials
+         # Hack to determine if these are JWT creds and we need to pass
+         # additional_claims when getting a token
+-        self._is_jwt = 'additional_claims' in inspect.getargspec(  # pylint: disable=deprecated-method
++        self._is_jwt = 'additional_claims' in inspect.getfullargspec(
+             credentials.get_access_token).args
+ 
+     def __call__(self, context, callback):

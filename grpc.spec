@@ -315,6 +315,20 @@ Patch:          %{forgeurl}/pull/29568.patch
 # Should install pkgconfig files under gRPC_INSTALL_LIBDIR
 # https://github.com/grpc/grpc/issues/25635
 Patch:          %{forgeurl}/pull/29826.patch
+# Replace deprecated Python “inspect.getargspec”
+# https://github.com/grpc/grpc/pull/29963
+#
+# Fixes:
+#
+# Uses deprecated “inspect.getargspec”, removed in Python 3.11
+# https://github.com/grpc/grpc/issues/29962
+#
+# Partially fixes:
+#
+# grpc fails to build with Python 3.11: AttributeError: module 'inspect' has no
+#   attribute 'getargspec'
+# https://bugzilla.redhat.com/show_bug.cgi?id=2095027
+Patch:          %{forgeurl}/pull/29963.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
