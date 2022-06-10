@@ -329,6 +329,17 @@ Patch:          %{forgeurl}/pull/29826.patch
 #   attribute 'getargspec'
 # https://bugzilla.redhat.com/show_bug.cgi?id=2095027
 Patch:          %{forgeurl}/pull/29963.patch
+# Skip failing ChannelzServicerTest tests on Python 3.11
+#
+# Partially works around:
+#
+# grpc fails to build with Python 3.11: AttributeError: module 'inspect' has no
+#   attribute 'getargspec'
+# https://bugzilla.redhat.com/show_bug.cgi?id=2095027
+#
+# TODO: Attempt to reproduce this outside the RPM build environment and submit
+# a useful/actionable upstream bug report.
+Patch:          grpc-1.46.3-ChannelzServicerTest-python3.11-regressions.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
