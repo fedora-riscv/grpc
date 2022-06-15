@@ -1,3 +1,4 @@
+%global _with_bootstrap 1
 # We need to use C++17 to link against the system abseil-cpp, or we get linker
 # errors.
 %global cpp_std 17
