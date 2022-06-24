@@ -10,9 +10,57 @@
 # is used only at build time, and contributes nothing to the installed files.
 # We take measures to verify this in %%check. As long as we are using our own
 # copy, we use the exact same version as upstream.
+%global gtest_url https://github.com/google/googletest
+%global gtest_dir googletest-%{gtest_commit}
 %global gtest_commit 0e402173c97aea7a00749e825b194bfede4f2e45
 #global gtest_version 1.11.0
+#global gtest_dir googletest-release-#{gtest_version}
 %bcond_with system_gtest
+
+# =====
+
+# Parameters for third-party sources needed for their .proto files, which
+# upstream expects to download at build time.
+#
+# See https://github.com/grpc/grpc/pull/29254 “[xDS Proto] Enhence gRPC
+# buildgen for 3rd party proto compilation” and
+# https://github.com/grpc/grpc/commit/99752b173cfa2fba81dedb482ee4fd74b2a46bb0,
+# in which the download mechanism was added.
+#
+# Check CMakeLists.txt (search for “download_archive”) for a list of these
+# third-party sources and the commit hashes used in the grpc release.
+#
+# Note that we do not treat these additional sources as bundled dependencies,
+# since (provably) only the .proto files are used.
+#
+# In practice, it seems the generated binding code for these protos is not
+# re-generated when building this package, so we could get by with creating the
+# appropriate directories and touching an empty file within each. We include
+# these archives in the source RPM anyway, since they are in some sense part of
+# the original sources for the generated proto code.
+
+# This will probably never be separately packaged in Fedora, since upstream can
+# only build with Bazel (and Bazel is such a mess of bundled dependencies that
+# it is unlikely to every be successfully packaged under the Fedora packaging
+# guidelines. Note that the URL is a read-only mirror based on
+# https://github.com/envoyproxy/envoy, with different commit hashes.
+%global envoy_api_commit df3b1ab2773147f292c4f175f790c35448328161
+%global envoy_api_url https://github.com/envoyproxy/data-plane-api
+%global envoy_api_dir data-plane-api-%{envoy_api_commit}
+
+%global googleapis_commit 2f9af297c84c55c8b871ba4495e01ade42476c92
+%global googleapis_url https://github.com/googleapis/googleapis
+%global googleapis_dir googleapis-%{googleapis_commit}
+
+%global opencensus_proto_version 0.3.0
+%global opencensus_proto_url https://github.com/census-instrumentation/opencensus-proto
+%global opencensus_proto_dir opencensus-proto-%{opencensus_proto_version}
+
+%global xds_commit cb28da3451f158a947dfc45090fe92b07b243bc1
+%global xds_url https://github.com/cncf/xds
+%global xds_dir xds-%{xds_commit}
+
+# =====
 
 # Bootstrapping breaks the circular dependency on python3dist(xds-protos),
 # which is packaged separately but ultimately generated from grpc sources using
@@ -64,7 +112,7 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.46.3
+Version:        1.47.1
 Release:        %autorelease
 Summary:        RPC library and framework
 
@@ -72,11 +120,11 @@ Summary:        RPC library and framework
 %global pyversion %(echo '%{version}' | tr -d '~')
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 24
+%global c_so_version 25
 # CMakeLists.txt: gRPC_CPP_SOVERSION
 # See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
 # regarding unusual C++ SOVERSION style (not a single number).
-%global cpp_so_version 1.46
+%global cpp_so_version 1.47
 
 # The entire source is Apache-2.0 except the following:
 #
@@ -120,14 +168,13 @@ Summary:        RPC library and framework
 License:        Apache-2.0 AND BSD-3-Clause AND MIT
 URL:            https://www.grpc.io
 %global forgeurl https://github.com/grpc/grpc/
-# Used only at build time (not a bundled library); see notes at definition of
-# gtest_commit/gtest_version macro for explanation and justification.
-%global gtest_url https://github.com/google/googletest
-%global gtest_archivename googletest-%{gtest_commit}
-#global gtest_archivename googletest-release-#{gtest_version}
 Source0:        %{forgeurl}/archive/v%{srcversion}/grpc-%{srcversion}.tar.gz
-Source1:        %{gtest_url}/archive/%{gtest_commit}/%{gtest_archivename}.tar.gz
-#Source1:        #{gtest_url}/archive/release-#{gtest_version}/#{gtest_archivename}.tar.gz
+Source1:        %{gtest_url}/archive/%{gtest_commit}/%{gtest_dir}.tar.gz
+#Source1:        #{gtest_url}/archive/release-#{gtest_version}/#{gtest_dir}.tar.gz
+Source2:        %{envoy_api_url}/archive/%{envoy_api_commit}/%{envoy_api_dir}.tar.gz
+Source3:        %{googleapis_url}/archive/%{googleapis_commit}/%{googleapis_dir}.tar.gz
+Source4:        %{opencensus_proto_url}/archive/v%{opencensus_proto_version}/%{opencensus_proto_dir}.tar.gz
+Source5:        %{xds_url}/archive/%{xds_commit}/%{xds_dir}.tar.gz
 
 # Downstream grpc_cli man pages; hand-written based on “grpc_cli help” output.
 Source100:      grpc_cli.1
@@ -268,10 +315,6 @@ BuildRequires:  symlinks
 #
 # In fact, this may not be needed, since only testing code is patched.
 Patch:          grpc-1.39.0-system-crypto-policies.patch
-# Add an option GRPC_PYTHON_BUILD_SYSTEM_ABSL to go with the gRPC_ABSL_PROVIDER
-# option already provided upstream. See
-# https://github.com/grpc/grpc/issues/25559.
-Patch:          grpc-1.40.0-python-grpcio-use-system-abseil.patch
 # Fix errors like:
 #   TypeError: super(type, obj): obj must be an instance or subtype of type
 # It is not clear why these occur.
@@ -293,20 +336,6 @@ Patch:          grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # suppose that the unpatched code must be correct for how upstream runs the
 # tests, somehow.
 Patch:          grpc-1.45.0-python_wrapper-path.patch
-# Do not segfault when peer CN is absent
-Patch:          %{forgeurl}/pull/29359.patch
-# Fix a segfault in client_lb_end2end_test
-#
-# In the SubchannelStreamClient constructor, do not initialize an
-# absl::string_view with a null pointer; this lead to strlen() being
-# called on the null pointer. Let the absl::string_view be empty in this
-# case instead.
-#
-# Fixes #29567.
-#
-# “Segfault in client_lb_end2end_test due to absl::string_view(nullptr)”
-# https://github.com/grpc/grpc/issues/29567
-Patch:          %{forgeurl}/pull/29568.patch
 # Use gRPC_INSTALL_LIBDIR for pkgconfig files
 # https://github.com/grpc/grpc/pull/29826
 #
@@ -701,7 +730,7 @@ echo '===== Preparing gtest/gmock =====' 2>&1
 # Copy in the needed gtest/gmock implementations.
 %setup -q -T -D -b 1 -n grpc-%{srcversion}
 rm -rvf 'third_party/googletest'
-mv '../%{gtest_archivename}' 'third_party/googletest'
+mv '../%{gtest_dir}' 'third_party/googletest'
 %else
 # Patch CMakeLists for external gtest/gmock.
 #
@@ -723,6 +752,31 @@ done
 sed -r -i 's/^([[:blank:]]*)(\$\{_gRPC_GFLAGS_LIBRARIES\})/'\
 '\1\2\n\1gtest\n\1gmock/' CMakeLists.txt
 %endif
+
+# Extract the source tarballs needed for their .proto files, which upstream
+# expects to download at build time.
+%setup -q -T -D -b 2 -n grpc-%{srcversion}
+%setup -q -T -D -b 3 -n grpc-%{srcversion}
+%setup -q -T -D -b 4 -n grpc-%{srcversion}
+%setup -q -T -D -b 5 -n grpc-%{srcversion}
+{
+  awk '$1 ~ /^(#|$)/ { next }; 1' <<'EOF'
+../%{envoy_api_dir}/ third_party/envoy-api/
+../%{googleapis_dir}/ third_party/googleapis/
+../%{opencensus_proto_dir}/ third_party/opencensus-proto/
+../%{xds_dir}/ third_party/xds/
+EOF
+} | while read -r fromdir todir
+do
+  # Remove everything from the external source tree except the .proto files, to
+  # prove that none of it is bundled.
+  find "${fromdir}" -type f ! -name '*.proto' -print -delete
+  # Remove the empty directory corresponding to the git submodule
+  rm -rvf "${todir}"
+  # Move the extracted source, to the location where the git submodule would be
+  # in a git checkout that included it.
+  mv "${fromdir}" "${todir}"
+done
 
 echo '===== Removing bundled xxhash =====' 2>&1
 # Remove bundled xxhash
@@ -783,7 +837,7 @@ echo '===== Fixing hard-coded C++ standard =====' 2>&1
 # We need to adjust the C++ standard to avoid abseil-related linker errors. For
 # the main C++ build, we can use CMAKE_CXX_STANDARD. For extensions, examples,
 # etc., we must patch.
-sed -r -i 's/(std=c\+\+)11/\1%{cpp_std}/g' \
+sed -r -i 's/(std=c\+\+)14/\1%{cpp_std}/g' \
     setup.py grpc.gyp Rakefile \
     examples/cpp/*/Makefile \
     examples/cpp/*/CMakeLists.txt \
@@ -843,7 +897,6 @@ PYTHONPATH="${PYTHONPATH}:${PYROOT}%{python3_sitearch}"
 export PYTHONPATH
 
 # ~~ grpcio ~~
-# Note that we had to patch in the GRPC_PYTHON_BUILD_SYSTEM_ABSL option.
 export GRPC_PYTHON_BUILD_WITH_CYTHON='True'
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL='True'
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB='True'
@@ -852,17 +905,19 @@ export GRPC_PYTHON_BUILD_SYSTEM_RE2='True'
 export GRPC_PYTHON_BUILD_SYSTEM_ABSL='True'
 export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY='True'
 export GRPC_PYTHON_ENABLE_DOCUMENTATION_BUILD='False'
-# We must set GRPC_PYTHON_CFLAGS to avoid unwanted defaults. We take the
-# upstream flags except that we remove -std=c99, which is inapplicable to the
-# C++ parts of the extension.
+# Use the upstream defaults for GRPC_PYTHON_CFLAGS adn GRPC_PYTHON_LDFLAGS,
+# except:
 #
-# We must set GRPC_PYTHON_LDFLAGS to avoid unwanted defaults. The upstream
-# flags attempt to statically link libgcc, so we do not need any of them. Since
-# we forcibly unbundle protobuf, we need to add linker flags for protobuf
-# ourselves.
-export GRPC_PYTHON_CFLAGS="-fvisibility=hidden -fno-wrapv -fno-exceptions $(
+# - Add any flags necessary for using the system protobuf library.
+# - Drop -lpthread and -lrt, since these are not needed on glibc 2.34 and
+#   later.
+# - Do not link libgcc statically (-static-libgcc).
+#
+# See also:
+# https://developers.redhat.com/articles/2021/12/17/why-glibc-234-removed-libpthread
+export GRPC_PYTHON_CFLAGS="$(
   pkg-config --cflags protobuf
-)"
+) -std=c++%{cpp_std} -fvisibility=hidden -fno-wrapv -fno-exceptions"
 export GRPC_PYTHON_LDFLAGS="$(pkg-config --libs protobuf)"
 %py3_build
 %{__python3} %{py_setup} %{?py_setup_args} install \

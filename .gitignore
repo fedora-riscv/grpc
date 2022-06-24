@@ -27,3 +27,9 @@
 /grpc-1.46.1.tar.gz
 /grpc-1.46.2.tar.gz
 /grpc-1.46.3.tar.gz
+/grpc-1.47.0.tar.gz
+/data-plane-api-df3b1ab2773147f292c4f175f790c35448328161.tar.gz
+/googleapis-2f9af297c84c55c8b871ba4495e01ade42476c92.tar.gz
+/opencensus-proto-0.3.0.tar.gz
+/xds-cb28da3451f158a947dfc45090fe92b07b243bc1.tar.gz
+/grpc-1.47.1.tar.gz
