@@ -19,7 +19,7 @@
 # the proto compilers in this package; the consequence is that we cannot build
 # the python3-grpcio-admin or python3-grpcio-csds subpackages until after
 # bootstrapping.
-%bcond_without bootstrap
+%bcond_with bootstrap
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
 # the tests by upstream. This is mentioned in
