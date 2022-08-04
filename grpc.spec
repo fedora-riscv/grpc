@@ -509,6 +509,7 @@ Summary:        Development files for gRPC library
 # License:        same as base package
 Requires:       grpc%{?_isa} = %{version}-%{release}
 Requires:       grpc-cpp%{?_isa} = %{version}-%{release}
+Requires:       grpc-plugins%{?_isa} = %{version}-%{release}
 
 # grpc/impl/codegen/port_platform.h includes linux/version.h
 Requires:       kernel-headers%{?_isa}
