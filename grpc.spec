@@ -440,6 +440,7 @@ Summary:        Development files for gRPC library
 # License:        same as base package
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       %{name}-cpp%{?_isa} = %{version}-%{release}
+Requires:       %{name}-plugins%{?_isa} = %{version}-%{release}
 
 Requires:       cmake-filesystem
 
