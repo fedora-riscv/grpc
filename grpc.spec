@@ -78,9 +78,9 @@ Summary:        RPC library and framework
 # regarding unusual C++ SOVERSION style (not a single number).
 %global cpp_so_version 1.46
 
-# The entire source is ASL 2.0 except the following:
+# The entire source is Apache-2.0 except the following:
 #
-# BSD:
+# BSD-3-Clause:
 #   - third_party/upb/, except third_party/upb/third_party/lunit/ and
 #     third_party/upb/third_party/utf8_range/
 #     * Potentially linked into any compiled subpackage (but not pure-Python
@@ -88,7 +88,6 @@ Summary:        RPC library and framework
 #   - third_party/address_sorting/
 #     * Potentially linked into any compiled subpackage (but not pure-Python
 #       subpackages, etc.)
-#
 # MIT:
 #   - third_party/upb/third_party/utf8_range
 #     * Potentially linked into any compiled subpackage (but not pure-Python
@@ -97,7 +96,7 @@ Summary:        RPC library and framework
 # as well as the following which do not contribute to the base License field or
 # any subpackage License field for the reasons noted:
 #
-# MPLv2.0:
+# MPL-2.0:
 #   - etc/roots.pem
 #     * Truncated to an empty file in prep; a symlink to the shared system
 #       certificates is used instead
@@ -106,18 +105,19 @@ Summary:        RPC library and framework
 # ISC:
 #   - src/boringssl/boringssl_prefix_symbols.h
 #     * Removed in prep; not used when building with system OpenSSL
-# BSD:
+# BSD-3-Clause:
 #   - src/objective-c/*.podspec and
 #     templates/src/objective-c/*.podspec.template
-#     * Unused since the Objective-C bindings are not currently built
-# MIT:
+#     * Unused since the Objective-C bindings are not currently built;
+#       furthermore, these seem to be build-system files that would not
+#       contribute their licenses to the binary RPM contents anyway
+# NTP:
 #   - third_party/cares/ares_build.h
 #     * Removed in prep; header from system C-Ares used instead
-#   - third_party/rake-compiler-dock/
-#     * Removed in prep, since we build no containers
+# MIT:
 #   - third_party/upb/third_party/lunit/
 #     * Removed in prep, since there is no obvious way to run the upb tests
-License:        ASL 2.0 and BSD and MIT
+License:        Apache-2.0 AND BSD-3-Clause AND MIT
 URL:            https://www.grpc.io
 %global forgeurl https://github.com/grpc/grpc/
 # Used only at build time (not a bundled library); see notes at definition of
@@ -397,7 +397,7 @@ This package provides the shared C core library.
 
 %package data
 Summary:        Data for gRPC bindings
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 Requires:       ca-certificates
@@ -409,7 +409,7 @@ the system shared TLS certificates.
 
 %package doc
 Summary:        Documentation and examples for gRPC
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 Obsoletes:      python-grpcio-doc < 1.26.0-13
@@ -564,7 +564,7 @@ Package for gRPC Python tools.
 %if %{without bootstrap}
 %package -n python3-grpcio-admin
 Summary:        A collection of admin services
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-admin
@@ -597,7 +597,7 @@ https://github.com/grpc/grpc/issues.
 %if %{without bootstrap}
 %package -n python3-grpcio-csds
 Summary:        xDS configuration dump library
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-csds
@@ -617,7 +617,7 @@ https://github.com/grpc/grpc/issues.
 
 %package -n python3-grpcio-channelz
 Summary:        Channel Level Live Debug Information Service for gRPC
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-channelz
@@ -629,7 +629,7 @@ Channelz is a live debug tool in gRPC Python.
 
 %package -n python3-grpcio-health-checking
 Summary:        Standard Health Checking Service for gRPC
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-health-checking
@@ -641,7 +641,7 @@ Reference package for GRPC Python health checking.
 
 %package -n python3-grpcio-reflection
 Summary:        Standard Protobuf Reflection Service for gRPC
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-reflection
@@ -653,7 +653,7 @@ Reference package for reflection in GRPC Python.
 
 %package -n python3-grpcio-status
 Summary:        Status proto mapping for gRPC
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-status
@@ -665,7 +665,7 @@ Reference package for GRPC Python status proto mapping.
 
 %package -n python3-grpcio-testing
 Summary:        Testing utilities for gRPC Python
-License:        ASL 2.0
+License:        Apache-2.0
 BuildArch:      noarch
 
 %description -n python3-grpcio-testing
@@ -746,7 +746,6 @@ echo '===== Removing selected unused sources =====' 2>&1
 rm -rfv \
     src/boringssl/boringssl_prefix_symbols.h \
     third_party/cares/ares_build.h \
-    third_party/rake-compiler-dock \
     third_party/upb/third_party/lunit
 # Since we are replacing roots.pem with a symlink to the shared system
 # certificates, we do not include its license (MPLv2.0) in any License field.
