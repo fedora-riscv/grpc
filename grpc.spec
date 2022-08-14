@@ -44,7 +44,7 @@
 # it is unlikely to every be successfully packaged under the Fedora packaging
 # guidelines. Note that the URL is a read-only mirror based on
 # https://github.com/envoyproxy/envoy, with different commit hashes.
-%global envoy_api_commit df3b1ab2773147f292c4f175f790c35448328161
+%global envoy_api_commit 9c42588c956220b48eb3099d186487c2f04d32ec
 %global envoy_api_url https://github.com/envoyproxy/data-plane-api
 %global envoy_api_dir data-plane-api-%{envoy_api_commit}
 
@@ -67,7 +67,7 @@
 # the proto compilers in this package; the consequence is that we cannot build
 # the python3-grpcio-admin or python3-grpcio-csds subpackages until after
 # bootstrapping.
-%bcond_with bootstrap
+%bcond_without bootstrap
 
 # This must be enabled to get grpc_cli, which is apparently considered part of
 # the tests by upstream. This is mentioned in
@@ -79,7 +79,18 @@
 %bcond_with python_aio_tests
 
 %ifnarch s390x
-%bcond_without python_gevent_tests
+# There are currently a significant number of failures like:
+#
+#   Exception serializing message!
+#   Traceback (most recent call last):
+#     File "/builddir/build/BUILDROOT/grpc-1.48.0-2.fc38~bootstrap.x86_64/usr/lib64/python3.11/site-packages/grpc/_common.py", line 86, in _transform
+#       return transformer(message)
+#              ^^^^^^^^^^^^^^^^^^^^
+#     File "/usr/lib/python3.11/site-packages/google/protobuf/internal/python_message.py", line 1082, in SerializeToString
+#       if not self.IsInitialized():
+#              ^^^^^^^^^^^^^^^^^^
+#   AttributeError: 'NoneType' object has no attribute 'IsInitialized'
+%bcond_with python_gevent_tests
 %else
 # A significant number of Python tests pass in test_lite but fail in
 # test_gevent, mostly by dumping core without a traceback.  Since it is tedious
@@ -112,7 +123,7 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.47.1
+Version:        1.48.0
 Release:        %autorelease
 Summary:        RPC library and framework
 
@@ -120,11 +131,11 @@ Summary:        RPC library and framework
 %global pyversion %(echo '%{version}' | tr -d '~')
 
 # CMakeLists.txt: gRPC_CORE_SOVERSION
-%global c_so_version 25
+%global c_so_version 26
 # CMakeLists.txt: gRPC_CPP_SOVERSION
 # See https://github.com/abseil/abseil-cpp/issues/950#issuecomment-843169602
 # regarding unusual C++ SOVERSION style (not a single number).
-%global cpp_so_version 1.47
+%global cpp_so_version 1.48
 
 # The entire source is Apache-2.0 except the following:
 #
@@ -327,7 +338,7 @@ Patch:          grpc-1.40.0-python-grpcio_tests-make-network-tests-skippable.pat
 # run. It is not clear that this is a real problem. Any help in understanding
 # the actual cause well enough to fix this or usefully report it upstream is
 # welcome.
-Patch:          grpc-1.36.4-python-grpcio_tests-skip-compression-tests.patch
+Patch:          grpc-1.48.0-python-grpcio_tests-skip-compression-tests.patch
 # The upstream requirement to link gtest/gmock from grpc_cli is spurious.
 # Remove it. We still have to build the core tests and link a test library
 # (libgrpc++_test_config.so…)
@@ -336,28 +347,6 @@ Patch:          grpc-1.37.0-grpc_cli-do-not-link-gtest-gmock.patch
 # suppose that the unpatched code must be correct for how upstream runs the
 # tests, somehow.
 Patch:          grpc-1.45.0-python_wrapper-path.patch
-# Use gRPC_INSTALL_LIBDIR for pkgconfig files
-# https://github.com/grpc/grpc/pull/29826
-#
-# Fixes:
-#
-# Should install pkgconfig files under gRPC_INSTALL_LIBDIR
-# https://github.com/grpc/grpc/issues/25635
-Patch:          %{forgeurl}/pull/29826.patch
-# Replace deprecated Python “inspect.getargspec”
-# https://github.com/grpc/grpc/pull/29963
-#
-# Fixes:
-#
-# Uses deprecated “inspect.getargspec”, removed in Python 3.11
-# https://github.com/grpc/grpc/issues/29962
-#
-# Partially fixes:
-#
-# grpc fails to build with Python 3.11: AttributeError: module 'inspect' has no
-#   attribute 'getargspec'
-# https://bugzilla.redhat.com/show_bug.cgi?id=2095027
-Patch:          %{forgeurl}/pull/29963.patch
 # Skip failing ChannelzServicerTest tests on Python 3.11
 #
 # Partially works around:
@@ -369,6 +358,13 @@ Patch:          %{forgeurl}/pull/29963.patch
 # TODO: Attempt to reproduce this outside the RPM build environment and submit
 # a useful/actionable upstream bug report.
 Patch:          grpc-1.46.3-ChannelzServicerTest-python3.11-regressions.patch
+# Running Python “test_lite”, in grpcio_tests,
+# unit._dynamic_stubs_test.DynamicStubTest.test_grpc_tools_unimportable hangs.
+# This may be related to:
+#   [FLAKE] DynamicStubTest timeout under gevent macOS
+#   https://github.com/grpc/grpc/issues/25368
+# The patch simply skips the test.
+Patch:          grpc-1.48.0-python-grpcio_tests-DynamicStubTest-hang.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
