@@ -64,7 +64,7 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.46.3
+Version:        1.46.4
 Release:        %autorelease
 Summary:        RPC library and framework
 
@@ -1136,12 +1136,14 @@ alts_crypter
 alts_concurrent_connectivity
 %endif
 
-%ifarch s390x
+%ifarch s390x ppc64le
 # Unexplained:
 #
 # (aborted without output)
 #
 # Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.46.4 2022-08-26 in COPR on centos-stream+epel-next-9-ppc64le
+# but NOT epel-9-ppc64le… what‽
 alts_frame_protector
 %endif
 
