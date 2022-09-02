@@ -123,7 +123,7 @@
 # documentation. Instead, we have just dropped all documentation.
 
 Name:           grpc
-Version:        1.48.0
+Version:        1.48.1
 Release:        %autorelease
 Summary:        RPC library and framework
 
@@ -1270,6 +1270,34 @@ alts_zero_copy_grpc_protector
 #
 # Confirmed in 1.46.1 2022-05-14 (on at least ppc64le)
 client_ssl
+
+%ifarch s390x
+# Unexplained:
+#
+# [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
+# E0907 14:32:31.499040041   70130 oauth2_credentials.cc:177]  Call to http server ended with error 401 [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,  "token_type":"Bearer"}].
+# *** SIGSEGV received at time=1662561151 on cpu 2 ***
+# PC: @      0x3ffb434b8c8  (unknown)  grpc_oauth2_token_fetcher_credentials_parse_server_response()
+#     @      0x3ffb3102560  (unknown)  (unknown)
+#     @      0x3ffb3102802  (unknown)  (unknown)
+#     @      0x3ffb467e490  (unknown)  (unknown)
+#     @      0x3ffb434b8c8  (unknown)  grpc_oauth2_token_fetcher_credentials_parse_server_response()
+#     @      0x2aa1f82c360  (unknown)  grpc_core::(anonymous namespace)::CredentialsTest_TestOauth2TokenFetcherCredsParsingEmptyHttpBody_Test::TestBody()
+#     @      0x2aa1f890e76  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa1f87af2a  (unknown)  testing::Test::Run()
+#     @      0x2aa1f87b1fe  (unknown)  testing::TestInfo::Run()
+#     @      0x2aa1f87b420  (unknown)  testing::TestSuite::Run()
+#     @      0x2aa1f884936  (unknown)  testing::internal::UnitTestImpl::RunAllTests()
+#     @      0x2aa1f891406  (unknown)  testing::internal::HandleExceptionsInMethodIfSupported<>()
+#     @      0x2aa1f87b706  (unknown)  testing::UnitTest::Run()
+#     @      0x2aa1f81e96e  (unknown)  main
+#     @      0x3ffb31ab618  (unknown)  __libc_start_call_main
+#     @      0x3ffb31ab700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa1f823d80  (unknown)  (unknown)
+#
+# Confirmed in 1.48.1 2022-09-07
+test_core_security_credentials
+%endif
 
 %ifarch x86_64
 # Unexplained:
