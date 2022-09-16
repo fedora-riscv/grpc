@@ -1101,19 +1101,19 @@ flaky_network
 # Unexplained:
 #
 # [ RUN      ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable
-# /builddir/build/BUILD/grpc-1.46.0/test/cpp/naming/address_sorting_test.cc:809: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/naming/address_sorting_test.cc:827: Failure
 # Expected equality of these values:
 #   source_addr_output->sin6_family
 #     Which is: 0
 #   10
-# /builddir/build/BUILD/grpc-1.46.0/test/cpp/naming/address_sorting_test.cc:819: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/naming/address_sorting_test.cc:837: Failure
 # Expected equality of these values:
 #   source_addr_str
 #     Which is: "::"
 #   "::1"
-# [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (2 ms)
+# [  FAILED  ] AddressSortingTest.TestSorterKnowsIpv6LoopbackIsAvailable (1 ms)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-13, possibly flaky
 address_sorting
 %endif
 
@@ -1121,23 +1121,23 @@ address_sorting
 # Unexplained:
 #
 # Status is not ok: Setting authenticated associated data failed
-# E0506 15:48:55.586625401 4020849 aes_gcm_test.cc:77]         assertion failed: status == GRPC_STATUS_OK
-# *** SIGABRT received at time=1651852135 on cpu 1 ***
-# PC: @      0x3ff89d98096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff89c82544  (unknown)  (unknown)
-#     @      0x3ff89c827e0  (unknown)  (unknown)
-#     @      0x3ff8a9fe490  (unknown)  (unknown)
-#     @      0x3ff89d98096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff89d48530  (unknown)  gsignal
-#     @      0x3ff89d2b5c0  (unknown)  abort
-#     @      0x2aa28f84818  (unknown)  gsec_assert_ok()
-#     @      0x2aa28f84944  (unknown)  gsec_test_random_encrypt_decrypt()
-#     @      0x2aa28f82536  (unknown)  main
-#     @      0x3ff89d2b872  (unknown)  __libc_start_call_main
-#     @      0x3ff89d2b950  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa28f836f0  (unknown)  (unknown)
+# E0912 22:53:27.561134727   29675 aes_gcm_test.cc:77]         assertion failed: status == GRPC_STATUS_OK
+# *** SIGABRT received at time=1663023207 on cpu 1 ***
+# PC: @      0x3ffb381cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ffb3702560  (unknown)  (unknown)
+#     @      0x3ffb3702802  (unknown)  (unknown)
+#     @      0x3ffb44fe490  (unknown)  (unknown)
+#     @      0x3ffb381cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ffb37c9d20  (unknown)  gsignal
+#     @      0x3ffb37ab364  (unknown)  abort
+#     @      0x2aa26304a28  (unknown)  gsec_assert_ok()
+#     @      0x2aa26304b54  (unknown)  gsec_test_random_encrypt_decrypt()
+#     @      0x2aa26302536  (unknown)  main
+#     @      0x3ffb37ab618  (unknown)  __libc_start_call_main
+#     @      0x3ffb37ab700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa263036f0  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-12
 alts_crypt
 %endif
 
@@ -1146,7 +1146,7 @@ alts_crypt
 #
 # (aborted without output)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-12
 alts_crypter
 %endif
 
@@ -1154,47 +1154,66 @@ alts_crypter
 # Unexplained:
 #
 # [ RUN      ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
-# E0506 20:38:59.376480159 4049276 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# E0912 22:58:34.364900111   29674 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
 # [… 11 similar lines omitted …]
-# /builddir/build/BUILD/grpc-1.46.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
 # Expected equality of these values:
 #   ev.type
 #     Which is: 1
 #   GRPC_OP_COMPLETE
 #     Which is: 2
-# connect_loop runner:0x3fffa47d718 got ev.type:1 i:0
-# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes (5004 ms)
+# connect_loop runner:0x3ffc817e2f8 got ev.type:1 i:0
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes (5016 ms)
 # [ RUN      ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
-# E0506 20:39:04.393443259 4049343 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
-# [… 1033 similar lines omitted …]
-# /builddir/build/BUILD/grpc-1.46.0/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
+# E0912 22:58:39.512378993   29762 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# [… 1015 similar lines omitted …]
+# /builddir/build/BUILD/grpc-1.48.1/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
 # Expected equality of these values:
 #   ev.type
 #     Which is: 1
 #   GRPC_OP_COMPLETE
 #     Which is: 2
-# connect_loop runner:0x2aa06421b00 got ev.type:1 i:0
-# [ … 343 lines with 49 similar errors omitted …]
-# [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes (15017 ms)
+# connect_loop runner:0x2aa1c0a7f40 got ev.type:1 i:0
+# [… 28 similar 7-line groups omitted …]
+# E0912 22:58:54.393525915   30129 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# E0912 22:58:54.393664601   30143 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# /builddir/build/BUILD/grpc-1.48.1/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
+# Expected equality of these values:
+#   ev.type
+#     Which is: 1
+#   GRPC_OP_COMPLETE
+#     Which is: 2
+# connect_loop runner:0x2aa1c0acbe0 got ev.type:1 i:0
+# [… 19 similar 7-line groups omitted …]
+# E0912 22:58:54.401378896   30129 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# E0912 22:58:54.401549994   30143 alts_grpc_privacy_integrity_record_protocol.cc:107] Failed to unprotect, More bytes written than expected. Frame decryption failed.
+# /builddir/build/BUILD/grpc-1.48.1/test/core/tsi/alts/handshaker/alts_concurrent_connectivity_test.cc:244: Failure
+# Expected equality of these values:
+#   ev.type
+#     Which is: 1
+#   GRPC_OP_COMPLETE
+#     Which is: 2
+# connect_loop runner:0x2aa1c0a8650 got ev.type:1 i:0
+# [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes (15056 ms)
 # [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenPeerEndpointClosesConnectionAfterAccepting
-# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenPeerEndpointClosesConnectionAfterAccepting (4519 ms)
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenPeerEndpointClosesConnectionAfterAccepting (3080 ms)
 # [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerClosesConnectionAfterAccepting
-# E0506 20:39:23.930152511 4049976 alts_handshaker_client.cc:223] recv_buffer is nullptr in alts_tsi_handshaker_handle_response()
-# [… 193 similar lines omitted …]
-# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerClosesConnectionAfterAccepting (2237 ms)
+# E0912 22:58:57.502419569   30351 alts_handshaker_client.cc:223] recv_buffer is nullptr in alts_tsi_handshaker_handle_response()
+# [… 160 similar lines omitted …]
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerClosesConnectionAfterAccepting (1199 ms)
 # [ RUN      ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerHangsAfterAccepting
-# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerHangsAfterAccepting (244 ms)
-# [----------] 5 tests from AltsConcurrentConnectivityTest (27024 ms total)
+# [       OK ] AltsConcurrentConnectivityTest.TestHandshakeFailsFastWhenHandshakeServerHangsAfterAccepting (308 ms)
+# [----------] 5 tests from AltsConcurrentConnectivityTest (24661 ms total)
 # [----------] Global test environment tear-down
-# [==========] 5 tests from 1 test suite ran. (27024 ms total)
+# [==========] 5 tests from 1 test suite ran. (24661 ms total)
 # [  PASSED  ] 3 tests.
 # [  FAILED  ] 2 tests, listed below:
 # [  FAILED  ] AltsConcurrentConnectivityTest.TestBasicClientServerHandshakes
 # [  FAILED  ] AltsConcurrentConnectivityTest.TestConcurrentClientServerHandshakes
 #  2 FAILED TESTS
-# E0506 20:39:36.394518375 4049271 test_config.cc:175]         Timeout in waiting for gRPC shutdown
+# E0912 22:59:08.997892504   29669 test_config.cc:175]         Timeout in waiting for gRPC shutdown
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-12
 alts_concurrent_connectivity
 %endif
 
@@ -1203,31 +1222,31 @@ alts_concurrent_connectivity
 #
 # (aborted without output)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-12
 alts_frame_protector
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0506 21:49:20.855933553 1468251 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
-# E0506 21:49:20.856134615 1468251 alts_grpc_record_protocol_test.cc:283] assertion failed: status == TSI_OK
-# *** SIGABRT received at time=1651873760 on cpu 0 ***
-# PC: @      0x3ff85598096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff85482544  (unknown)  (unknown)
-#     @      0x3ff854827e0  (unknown)  (unknown)
-#     @      0x3ff861fe490  (unknown)  (unknown)
-#     @      0x3ff85598096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff85548530  (unknown)  gsignal
-#     @      0x3ff8552b5c0  (unknown)  abort
-#     @      0x2aa1888375e  (unknown)  random_seal_unseal()
-#     @      0x2aa18884008  (unknown)  alts_grpc_record_protocol_tests()
-#     @      0x2aa1888258c  (unknown)  main
-#     @      0x3ff8552b872  (unknown)  __libc_start_call_main
-#     @      0x3ff8552b950  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa18882680  (unknown)  (unknown)
+# E0914 15:16:37.948845070   29676 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
+# E0914 15:16:37.949063396   29676 alts_grpc_record_protocol_test.cc:283] assertion failed: status == TSI_OK
+# *** SIGABRT received at time=1663168597 on cpu 2 ***
+# PC: @      0x3ff8da1cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff8d902560  (unknown)  (unknown)
+#     @      0x3ff8d902802  (unknown)  (unknown)
+#     @      0x3ff8e77e490  (unknown)  (unknown)
+#     @      0x3ff8da1cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff8d9c9d20  (unknown)  gsignal
+#     @      0x3ff8d9ab364  (unknown)  abort
+#     @      0x2aa2f28375e  (unknown)  random_seal_unseal()
+#     @      0x2aa2f284008  (unknown)  alts_grpc_record_protocol_tests()
+#     @      0x2aa2f28258c  (unknown)  main
+#     @      0x3ff8d9ab618  (unknown)  __libc_start_call_main
+#     @      0x3ff8d9ab700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa2f282680  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-14
 alts_grpc_record_protocol
 %endif
 
@@ -1236,31 +1255,31 @@ alts_grpc_record_protocol
 #
 # (aborted without output)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-14
 alts_iovec_record_protocol
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0507 14:19:47.146439950 2465022 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
-# E0507 14:19:47.146597694 2465022 alts_zero_copy_grpc_protector_test.cc:184] assertion failed: tsi_zero_copy_grpc_protector_protect( sender, &var->original_sb, &var->protected_sb) == TSI_OK
-# *** SIGABRT received at time=1651933187 on cpu 0 ***
-# PC: @      0x3ff89498096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff89382544  (unknown)  (unknown)
-#     @      0x3ff893827e0  (unknown)  (unknown)
-#     @      0x3ff8a0fe490  (unknown)  (unknown)
-#     @      0x3ff89498096  (unknown)  __pthread_kill_implementation
-#     @      0x3ff89448530  (unknown)  gsignal
-#     @      0x3ff8942b5c0  (unknown)  abort
-#     @      0x2aa1a0032d0  (unknown)  seal_unseal_small_buffer()
-#     @      0x2aa1a003478  (unknown)  alts_zero_copy_protector_seal_unseal_small_buffer_tests()
-#     @      0x2aa1a00254a  (unknown)  main
-#     @      0x3ff8942b872  (unknown)  __libc_start_call_main
-#     @      0x3ff8942b950  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa1a002630  (unknown)  (unknown)
+# E0914 15:23:44.474978044   29723 alts_grpc_integrity_only_record_protocol.cc:109] Failed to protect, Setting authenticated associated data failed
+# E0914 15:23:44.475141948   29723 alts_zero_copy_grpc_protector_test.cc:186] assertion failed: tsi_zero_copy_grpc_protector_protect( sender, &var->original_sb, &var->protected_sb) == TSI_OK
+# *** SIGABRT received at time=1663169024 on cpu 0 ***
+# PC: @      0x3ff9079cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff90682560  (unknown)  (unknown)
+#     @      0x3ff90682802  (unknown)  (unknown)
+#     @      0x3ff914fe490  (unknown)  (unknown)
+#     @      0x3ff9079cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff90749d20  (unknown)  gsignal
+#     @      0x3ff9072b364  (unknown)  abort
+#     @      0x2aa01c83324  (unknown)  seal_unseal_small_buffer()
+#     @      0x2aa01c83538  (unknown)  alts_zero_copy_protector_seal_unseal_small_buffer_tests()
+#     @      0x2aa01c8254a  (unknown)  main
+#     @      0x3ff9072b618  (unknown)  __libc_start_call_main
+#     @      0x3ff9072b700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa01c82630  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-06
+# Confirmed in 1.48.1 2022-09-14
 alts_zero_copy_grpc_protector
 %endif
 
@@ -1268,7 +1287,7 @@ alts_zero_copy_grpc_protector
 #
 # (hangs indefinitely, timeout triggered)
 #
-# Confirmed in 1.46.1 2022-05-14 (on at least ppc64le)
+# Confirmed in 1.48.1 2022-09-13
 client_ssl
 
 %ifarch s390x
@@ -1303,76 +1322,78 @@ test_core_security_credentials
 # Unexplained:
 #
 # [ RUN      ] ExamineStackTest.AbseilStackProvider
-# /builddir/build/BUILD/grpc-1.46.0/test/core/gprpp/examine_stack_test.cc:75: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/core/gprpp/examine_stack_test.cc:75: Failure
 # Value of: stack_trace->find("GetCurrentStackTrace") != std::string::npos
 #   Actual: false
 # Expected: true
 # [  FAILED  ] ExamineStackTest.AbseilStackProvider (0 ms)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-13
 examine_stack
 %endif
 
 %ifarch s390x
 # Unexplained:
 #
-# E0509 15:02:47.269422552 2434394 cq_verifier.cc:228]         no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.46.0/test/core/end2end/goaway_server_test.cc:279
-# tag(769) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.46.0/test/core/end2end/goaway_server_test.cc:280
-# *** SIGABRT received at time=1652108567 on cpu 1 ***
-# PC: @      0x3ffb6e98096  (unknown)  __pthread_kill_implementation
-#     @      0x3ffb6d82544  (unknown)  (unknown)
-#     @      0x3ffb6d827e0  (unknown)  (unknown)
-#     @      0x3ffb7cfe490  (unknown)  (unknown)
-#     @      0x3ffb6e98096  (unknown)  __pthread_kill_implementation
-#     @      0x3ffb6e48530  (unknown)  gsignal
-#     @      0x3ffb6e2b5c0  (unknown)  abort
-#     @      0x2aa1b406a72  (unknown)  cq_verify()
-#     @      0x2aa1b404f9a  (unknown)  main
-#     @      0x3ffb6e2b872  (unknown)  __libc_start_call_main
-#     @      0x3ffb6e2b950  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa1b405720  (unknown)  (unknown)
+# E0914 18:50:00.139725989   58193 cq_verifier.cc:228]         no event received, but expected:tag(257) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.48.1/test/core/end2end/goaway_server_test.cc:271
+# tag(769) GRPC_OP_COMPLETE success=1 /builddir/build/BUILD/grpc-1.48.1/test/core/end2end/goaway_server_test.cc:272
+# *** SIGABRT received at time=1663181400 on cpu 0 ***
+# PC: @      0x3ff8bf9cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff8be82560  (unknown)  (unknown)
+#     @      0x3ff8be82802  (unknown)  (unknown)
+#     @      0x3ff8cefe490  (unknown)  (unknown)
+#     @      0x3ff8bf9cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ff8bf49d20  (unknown)  gsignal
+#     @      0x3ff8bf2b364  (unknown)  abort
+#     @      0x2aa21f05a88  (unknown)  cq_verify()
+#     @      0x2aa21f03fc8  (unknown)  main
+#     @      0x3ff8bf2b618  (unknown)  __libc_start_call_main
+#     @      0x3ff8bf2b700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa21f04730  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-14
 goaway_server
 %endif
 
+%ifarch aarch64 x86_64 ppc64le s390x
 # Unexplained:
 #
 # [ RUN      ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet
 # [libprotobuf ERROR google/protobuf/text_format.cc:335] Error parsing text-format grpc.testing.SimpleRequest: 1:7: Message type "grpc.testing.SimpleRequest" has no field named "redhat".
 # Failed to convert text format to proto.
 # Failed to parse request.
-# /builddir/build/BUILD/grpc-1.46.0/test/cpp/util/grpc_tool_test.cc:915: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/util/grpc_tool_test.cc:915: Failure
 # Value of: 0 == GrpcToolMainLib(ArraySize(argv), argv, TestCliCredentials(), std::bind(PrintStream, &output_stream, std::placeholders::_1))
 #   Actual: false
 # Expected: true
-# /builddir/build/BUILD/grpc-1.46.0/test/cpp/util/grpc_tool_test.cc:920: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/util/grpc_tool_test.cc:920: Failure
 # Value of: nullptr != strstr(output_stream.str().c_str(), "message: \"true\"")
 #   Actual: false
 # Expected: true
-# [  FAILED  ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet (4 ms)
+# [  FAILED  ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet (5 ms)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-14
 grpc_tool
+%endif
 
 %ifarch s390x
 # Unexplained:
 #
-# *** SIGABRT received at time=1652104042 on cpu 1 ***
-# PC: @      0x3ffa5398096  (unknown)  __pthread_kill_implementation
-#     @      0x3ffa5282544  (unknown)  (unknown)
-#     @      0x3ffa52827e0  (unknown)  (unknown)
-#     @      0x3ffa59fe490  (unknown)  (unknown)
-#     @      0x3ffa5398096  (unknown)  __pthread_kill_implementation
-#     @      0x3ffa5348530  (unknown)  gsignal
-#     @      0x3ffa532b5c0  (unknown)  abort
-#     @      0x2aa2b40145e  (unknown)  verification_test()
-#     @      0x2aa2b4011e8  (unknown)  main
-#     @      0x3ffa532b872  (unknown)  __libc_start_call_main
-#     @      0x3ffa532b950  (unknown)  __libc_start_main@GLIBC_2.2
-#     @      0x2aa2b401270  (unknown)  (unknown)
+# *** SIGABRT received at time=1663181750 on cpu 2 ***
+# PC: @      0x3ffaec9cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ffaeb82560  (unknown)  (unknown)
+#     @      0x3ffaeb82802  (unknown)  (unknown)
+#     @      0x3ffaf37e490  (unknown)  (unknown)
+#     @      0x3ffaec9cf2a  (unknown)  __pthread_kill_implementation
+#     @      0x3ffaec49d20  (unknown)  gsignal
+#     @      0x3ffaec2b364  (unknown)  abort
+#     @      0x2aa1be8145e  (unknown)  verification_test()
+#     @      0x2aa1be811e8  (unknown)  main
+#     @      0x3ffaec2b618  (unknown)  __libc_start_call_main
+#     @      0x3ffaec2b700  (unknown)  __libc_start_main@GLIBC_2.2
+#     @      0x2aa1be81270  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-14
 murmur_hash
 %endif
 
@@ -1380,13 +1401,13 @@ murmur_hash
 # Unexplained:
 #
 # [ RUN      ] StackTracerTest.Basic
-# /builddir/build/BUILD/grpc-1.46.0/test/core/util/stack_tracer_test.cc:36: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/core/util/stack_tracer_test.cc:36: Failure
 # Value of: absl::StrContains(stack_trace, "Basic")
 #   Actual: false
 # Expected: true
 # [  FAILED  ] StackTracerTest.Basic (0 ms)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-14
 stack_tracer
 %endif
 
@@ -1397,73 +1418,63 @@ stack_tracer
 # ppc64le in older versions.
 #
 # [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
-# E0509 16:23:59.122730405 3124460 oauth2_credentials.cc:165]  Call to http server ended with error 401 [{"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_", "expires_in":3599,  "token_type":"Bearer"}].
-# *** SIGSEGV received at time=1652113439 on cpu 3 ***
-# PC: @     0x7f13bf51165c  (unknown)  __strlen_evex
-#     @               0x33  (unknown)  (unknown)
+# *** SIGSEGV received at time=1663181447 on cpu 2 ***
+# PC: @     0x7fdda4098c3c  (unknown)  __strlen_evex
+#     @               0x32  (unknown)  (unknown)
 #
-# Confirmed in 1.46.0 2022-05-09
+# Confirmed in 1.48.1 2022-09-14
 test_core_security_credentials
 %endif
 
+%ifarch aarch64 x86_64 ppc64le s390x
 # It looks like server_key_log has the right lines, but in an unexpected order.
 # It is not immediately obvious if this a real problem, or an implementation
 # quirk. Opinions about whether, or how, to report this upstream are welcome!
 #
 # [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 e2d3f9cb30e7eef95f95e3bca6f5e4258e42cc7903c424529730f2397ea6444b8c5e6e8c40b6f8d2060141a045ef814c\rEXPORTER_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 820a4529b3e9614df378adb43a712ebc472b7fc91b6a92ff3421fb5870dd18782e7fb47e261eca093d9b8285e4ff17e0\rSERVER_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 dfac76dd16ed221785dc5e41fb1243430bddd70d78fe33344c8cc899d1e1b3f56d6865a2506044674063e9d32902588e\rCLIENT_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 f2f276c097044d63448a3413109702cd6413e6bbd75b3a40208c3fb5a9a0c8ca86d4a0460e1a04dcc025571e1edbb927\rCLIENT_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 8abeb453616823875792497d98bc6032f772a6f4cd75716209c49c4abc4ef470e6fd4ab274b7019162a6c584ff94ec4b\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 e2d3f9cb30e7eef95f95e3bca6f5e4258e42cc7903c424529730f2397ea6444b8c5e6e8c40b6f8d2060141a045ef814c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 f2f276c097044d63448a3413109702cd6413e6bbd75b3a40208c3fb5a9a0c8ca86d4a0460e1a04dcc025571e1edbb927\rEXPORTER_SECRET cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 820a4529b3e9614df378adb43a712ebc472b7fc91b6a92ff3421fb5870dd18782e7fb47e261eca093d9b8285e4ff17e0\rSERVER_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 dfac76dd16ed221785dc5e41fb1243430bddd70d78fe33344c8cc899d1e1b3f56d6865a2506044674063e9d32902588e\rCLIENT_TRAFFIC_SECRET_0 cbe6c0edbc9729ca0ac78c15a707661c13efbf9c88d702f9746771e38e478b97 8abeb453616823875792497d98bc6032f772a6f4cd75716209c49c4abc4ef470e6fd4ab274b7019162a6c584ff94ec4b\r"
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 f7d20427eda7b69db54be3032a3f1f05a0f55d1108defd15e1a2dae211dc00214554caaaac25e541e08a8a49976f2094\rEXPORTER_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 b0b765b3d8df4388fd1232921dfe943923c971886feda8bb55673d91f90be4466d18e47305c6c84348a58d6d1f1d1d2e\rSERVER_TRAFFIC_SECRET_0 eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 58fcaf175146ac0efc4e32ed3cd73bb10e35103453ea3bf3ad11296a5902628ba692f4c06269912d94982ea56276dd6b\rCLIENT_HANDSHAKE_TRAFFIC_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 92814e941dd4b724b0eadebdb424c029d2bd4f028cf693f72315752198a9d0ec85a68a3197570f1b7aaa1b1f200c2797\rCLIENT_TRAFFIC_SECRET_0 eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 3a9d4b7afebad9b50d7b9d71f5f508df54d90303d6beb941c5b1d8d10e19923f3928546bbe7a64c8613d5e715ff030b9\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 f7d20427eda7b69db54be3032a3f1f05a0f55d1108defd15e1a2dae211dc00214554caaaac25e541e08a8a49976f2094\rCLIENT_HANDSHAKE_TRAFFIC_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 92814e941dd4b724b0eadebdb424c029d2bd4f028cf693f72315752198a9d0ec85a68a3197570f1b7aaa1b1f200c2797\rEXPORTER_SECRET eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 b0b765b3d8df4388fd1232921dfe943923c971886feda8bb55673d91f90be4466d18e47305c6c84348a58d6d1f1d1d2e\rSERVER_TRAFFIC_SECRET_0 eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 58fcaf175146ac0efc4e32ed3cd73bb10e35103453ea3bf3ad11296a5902628ba692f4c06269912d94982ea56276dd6b\rCLIENT_TRAFFIC_SECRET_0 eef4f25d9d199eb0df0e2305e6d25339b85921dc6cc074fc8c20dbd6accc0203 3a9d4b7afebad9b50d7b9d71f5f508df54d90303d6beb941c5b1d8d10e19923f3928546bbe7a64c8613d5e715ff030b9\r"
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 aaa28bd7a945c3fccb1248bd024a604e2825891009af24bf44376d0ba36983dc243c7cb272e8f403db8762d6f44f1c3c\rEXPORTER_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 c4a36ba53829243df5fccf0bf416c889e9c8813353a4487615e33dd443e5f196267c0fb7bacb8ee5b23f9c8c38c46b2e\rSERVER_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 89765e5e4cbd62a3be738f4c2ceb4be2e3fe204245f9765cab0f026ea1ec2e686d0df06291a1ae44b744a50e9493f944\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6ce17c81bb29ef1660e4404ac61755ba438a4c26bb93e812602e86329c03c6d63b6db282d9e6d0827025a43e2a6db507\rCLIENT_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6a816d2d67967d1d455b69894ee731e41794b3fe299220bae615e66727d112f58d8982675a5d533d49dc0378bf9fb103\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 aaa28bd7a945c3fccb1248bd024a604e2825891009af24bf44376d0ba36983dc243c7cb272e8f403db8762d6f44f1c3c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6ce17c81bb29ef1660e4404ac61755ba438a4c26bb93e812602e86329c03c6d63b6db282d9e6d0827025a43e2a6db507\rEXPORTER_SECRET f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 c4a36ba53829243df5fccf0bf416c889e9c8813353a4487615e33dd443e5f196267c0fb7bacb8ee5b23f9c8c38c46b2e\rSERVER_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 89765e5e4cbd62a3be738f4c2ceb4be2e3fe204245f9765cab0f026ea1ec2e686d0df06291a1ae44b744a50e9493f944\rCLIENT_TRAFFIC_SECRET_0 f3f5bb032b5283139d8e69c5e7d408b0e58b32b857b790c28bb81083c1f08751 6a816d2d67967d1d455b69894ee731e41794b3fe299220bae615e66727d112f58d8982675a5d533d49dc0378bf9fb103\r"
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 dcd6d6638d96fe74db4bf9ac393a4b481a7d611972c21e95da4f971e6295fe60fbce33a8bdb466fe4e2a409e005259b5\rEXPORTER_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 0637c81033fdfe3bed0b3eb3a4ea4c23246641d530fa695672d2e00aef18ebab4b25d6d38fd7a948f6a77fade9297fe7\rSERVER_TRAFFIC_SECRET_0 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 987dde02bc0757e3e9b309bf57c228c43243fe5abc2b93fa7bffa400065935d7b4e04fb709609e018fe94c71f5cd283e\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 e4badfe723bd95761bad8be436d3db2af0d4ed724cf0de092a2cad635e4bdead50a428a5e3a566c766ab92f8d2c47468\rCLIENT_TRAFFIC_SECRET_0 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 ce55a02ed58902ccf6b70df880d3314a584a686bb751cc168c4a6aa9753312c051000e8fbf01de957f2cdee41563604a\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 dcd6d6638d96fe74db4bf9ac393a4b481a7d611972c21e95da4f971e6295fe60fbce33a8bdb466fe4e2a409e005259b5\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 e4badfe723bd95761bad8be436d3db2af0d4ed724cf0de092a2cad635e4bdead50a428a5e3a566c766ab92f8d2c47468\rEXPORTER_SECRET 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 0637c81033fdfe3bed0b3eb3a4ea4c23246641d530fa695672d2e00aef18ebab4b25d6d38fd7a948f6a77fade9297fe7\rSERVER_TRAFFIC_SECRET_0 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 987dde02bc0757e3e9b309bf57c228c43243fe5abc2b93fa7bffa400065935d7b4e04fb709609e018fe94c71f5cd283e\rCLIENT_TRAFFIC_SECRET_0 0aa0e0df58ebad99c8610573e28cdd0ea6629bc3e4eab31ec45a713e9a789ae6 ce55a02ed58902ccf6b70df880d3314a584a686bb751cc168c4a6aa9753312c051000e8fbf01de957f2cdee41563604a\r"
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 4faa820090880462e1b2e9a3bb83e2f09744986e72e26e57d6c9ac7bb72058b57adac41c123de64e4b3b72719bc8eea4\rEXPORTER_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc e43c4527fbe9b5a552604b7cc92f47ab79cdf6f58804b06f0e02a634eb252f95b78b202634d084c46b24b132187e603d\rSERVER_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 2da0bcf4584dd9cb1795f2d8adc4e766c0d6c2d0295cdd5f6ec0e9eed057613d81ab386e96bf1a4d2364d66a677acc3c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 95beadcad1b17f86e504b4bf525406c6a29a2251867567aa93ce23b531b62f9b0c2c7e82d061c2a741edd96d84874ad5\rCLIENT_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 0f047139f6c4dfafb590f3a62ee812cefc8550aaa2f15edca843f0365d5a17b4507ad5f63a369974e83cd1ec0fdb5049\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 4faa820090880462e1b2e9a3bb83e2f09744986e72e26e57d6c9ac7bb72058b57adac41c123de64e4b3b72719bc8eea4\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 95beadcad1b17f86e504b4bf525406c6a29a2251867567aa93ce23b531b62f9b0c2c7e82d061c2a741edd96d84874ad5\rEXPORTER_SECRET 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc e43c4527fbe9b5a552604b7cc92f47ab79cdf6f58804b06f0e02a634eb252f95b78b202634d084c46b24b132187e603d\rSERVER_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 2da0bcf4584dd9cb1795f2d8adc4e766c0d6c2d0295cdd5f6ec0e9eed057613d81ab386e96bf1a4d2364d66a677acc3c\rCLIENT_TRAFFIC_SECRET_0 7c9ff52917c484e1296e07db3ebe639b0451d53e4e96ba49b6e2f730b08dbecc 0f047139f6c4dfafb590f3a62ee812cefc8550aaa2f15edca843f0365d5a17b4507ad5f63a369974e83cd1ec0fdb5049\r"
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 c5fc8018e0d9b3d1af85cc5fff423b8f45087ca07194ff9f3576656111c566e8bef7e3e896b75aa2fd601ad6333f0f26\rEXPORTER_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 84233022a806f7f281cdec34cf2312b8e7101e428a84abf85c03e8478ec846a31d874dda24a7589d44c7d51610a67ea5\rSERVER_TRAFFIC_SECRET_0 df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 6463382c0cdf3d2b850419e70bffeb8c6d9bce5db1c112cae4baf2b553fc3d9a7b783ed38c2f45b0e806d5a024aaffab\rCLIENT_HANDSHAKE_TRAFFIC_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 b55c4d1d1e72714014c3505ff3da57bd14490b299c8f6398ef6a3aba03c090c8514dc4e0b8e2e9503e59af82d793b78d\rCLIENT_TRAFFIC_SECRET_0 df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 b11c752b4e715a8b40d23791c47eace7a59c5e73080b1da04cae557a1881d01c9e3fd191d96747b2926b422c08dc87b1\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 c5fc8018e0d9b3d1af85cc5fff423b8f45087ca07194ff9f3576656111c566e8bef7e3e896b75aa2fd601ad6333f0f26\rCLIENT_HANDSHAKE_TRAFFIC_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 b55c4d1d1e72714014c3505ff3da57bd14490b299c8f6398ef6a3aba03c090c8514dc4e0b8e2e9503e59af82d793b78d\rEXPORTER_SECRET df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 84233022a806f7f281cdec34cf2312b8e7101e428a84abf85c03e8478ec846a31d874dda24a7589d44c7d51610a67ea5\rSERVER_TRAFFIC_SECRET_0 df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 6463382c0cdf3d2b850419e70bffeb8c6d9bce5db1c112cae4baf2b553fc3d9a7b783ed38c2f45b0e806d5a024aaffab\rCLIENT_TRAFFIC_SECRET_0 df2e54c90fc9036eb8a8565733de306f36e60067df4d83772ee8105ff7ddaea7 b11c752b4e715a8b40d23791c47eace7a59c5e73080b1da04cae557a1881d01c9e3fd191d96747b2926b422c08dc87b1\r"
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff d09d807afd55f9c1582e6879d97a262fa26f19db06cb57a14ce53f6be372dbb70ed036f8bf7d5f6a3168771eb2e4de30\rEXPORTER_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 5e76f891f0bbf4fa51a6fc5cc52aadf150995804a3ab81a185efb3ff02a6847ba7945cdd9a3a4c99ab3a657d150e1ca6\rSERVER_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 4c2839a7d98111e43bccabc839fd76ca6fc35b6bf294d93e800d8d0c8536b5b71eb11b6b2e5233227f42f2e4ba04645e\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 920fc5885c48f5aa5d79fc6749e29f9bc8841f73a87a949888e7bbfbabaff970bf54ed668e86c591b5d11c2ff59720e4\rCLIENT_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff a1691a7847eb12b18d58152bb2b849ae588abf54b6f9ff019abebedb3e749e13bbe039526137d6b5ae2d6e630bb4589c\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff d09d807afd55f9c1582e6879d97a262fa26f19db06cb57a14ce53f6be372dbb70ed036f8bf7d5f6a3168771eb2e4de30\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 920fc5885c48f5aa5d79fc6749e29f9bc8841f73a87a949888e7bbfbabaff970bf54ed668e86c591b5d11c2ff59720e4\rEXPORTER_SECRET 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 5e76f891f0bbf4fa51a6fc5cc52aadf150995804a3ab81a185efb3ff02a6847ba7945cdd9a3a4c99ab3a657d150e1ca6\rSERVER_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff 4c2839a7d98111e43bccabc839fd76ca6fc35b6bf294d93e800d8d0c8536b5b71eb11b6b2e5233227f42f2e4ba04645e\rCLIENT_TRAFFIC_SECRET_0 59fd362f394bf867a5bcf4c6dd600790bd784424bdea837a47698c85082eebff a1691a7847eb12b18d58152bb2b849ae588abf54b6f9ff019abebedb3e749e13bbe039526137d6b5ae2d6e630bb4589c\r"
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 5496b13a3e9064741476ab17e308263a9fe55e47d26f136895dc551f4ebd9d90738960e97cd1d78cb5e5326669e7d74d\rEXPORTER_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 59f36680c801582c2c4e8f05ed2f7d838cbecdb741004d1f49377bd268cde3d317c913de38baf5fa701232a3e7c262a7\rSERVER_TRAFFIC_SECRET_0 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 0abcaad18e36929489b73a4783d41a4c52f0086923b1476ea3cfed5035ae9377b39ed9b9b51e153267f305b31610482d\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 cc36b79ed8d7986164bd4e3482239b3dabc4348f1ea1d70048ac8d1fd884dbbd0b3afbb33a17018444cba0cd739a136c\rCLIENT_TRAFFIC_SECRET_0 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 a84993ee9b9b938f68bfebf1abd703f7c7b776b9170c913c27385d0be9b133374b542bd8769e9272232894a008c45bae\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 5496b13a3e9064741476ab17e308263a9fe55e47d26f136895dc551f4ebd9d90738960e97cd1d78cb5e5326669e7d74d\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 cc36b79ed8d7986164bd4e3482239b3dabc4348f1ea1d70048ac8d1fd884dbbd0b3afbb33a17018444cba0cd739a136c\rEXPORTER_SECRET 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 59f36680c801582c2c4e8f05ed2f7d838cbecdb741004d1f49377bd268cde3d317c913de38baf5fa701232a3e7c262a7\rSERVER_TRAFFIC_SECRET_0 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 0abcaad18e36929489b73a4783d41a4c52f0086923b1476ea3cfed5035ae9377b39ed9b9b51e153267f305b31610482d\rCLIENT_TRAFFIC_SECRET_0 28b08520f2b4f4238e78adf378efc0caea3bbf123767522d950f75da0f0c09b4 a84993ee9b9b938f68bfebf1abd703f7c7b776b9170c913c27385d0be9b133374b542bd8769e9272232894a008c45bae\r"
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac e6fedd13291bdc2820ecbe310ffd3c778f4a74ddee894d617fb94bce1ac8ae89c2ea71b34e0036c48e8b7cb410a3ccad\rEXPORTER_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 50cce74e4c6ac319c384cd9de9b68e0bc299f26a0ed2142d710b0cf361fd188eabb2c7f3bd8113cae2fcb4f3eca66c22\rSERVER_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 90d2e703ad1079114b224f53a5f8225fe0305987d6a219527d28903ccae552f27b5ca7089d7790d66da0cccbdfd26645\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 6b0dcc8075ee0b2188b6cf781662be3c8b3e43476ac48f2ab1257adb8c9e9c74b5824347e18c4f969c6cbb30d5c7207f\rCLIENT_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 1acef388db865ac638051ee13f5b6ef7a9ca79822e0436a11aaf64a1af2cb07a72cf26a115cb35556637a0a7c2fd27a2\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac e6fedd13291bdc2820ecbe310ffd3c778f4a74ddee894d617fb94bce1ac8ae89c2ea71b34e0036c48e8b7cb410a3ccad\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 6b0dcc8075ee0b2188b6cf781662be3c8b3e43476ac48f2ab1257adb8c9e9c74b5824347e18c4f969c6cbb30d5c7207f\rEXPORTER_SECRET 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 50cce74e4c6ac319c384cd9de9b68e0bc299f26a0ed2142d710b0cf361fd188eabb2c7f3bd8113cae2fcb4f3eca66c22\rSERVER_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 90d2e703ad1079114b224f53a5f8225fe0305987d6a219527d28903ccae552f27b5ca7089d7790d66da0cccbdfd26645\rCLIENT_TRAFFIC_SECRET_0 770d00f300fc4e6175da566d6d6b8d0fc247a27e7f1ec329b69d575e2a1f7bac 1acef388db865ac638051ee13f5b6ef7a9ca79822e0436a11aaf64a1af2cb07a72cf26a115cb35556637a0a7c2fd27a2\r"
-# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 00-01 00-00> (66 ms)
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 451c0c2e870b4971c2f965d75baa1ca1c5bd417aeb6d9f7fd20a45424505249c87d4b4d6437f2c4fe06e0f4652a68564\rEXPORTER_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 fc31c6fb0afdb466c17e3cee04564f7061a553239d88b0c7a1711de757d37288814e6a27e00dbad87ef610d5460db8bd\rSERVER_TRAFFIC_SECRET_0 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 c00928d08ab817a90a9abb72b8b3caedeb7f575c917bb923635ec9b6023a4dc205275cc60cf891fe5102b4375a4823e9\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 fb6067e497dafcfeb3c8cc5183c64d560d7fd59e012f0def755eb5b54436a9d4f369dd30fc0cad8f629406520edc2116\rCLIENT_TRAFFIC_SECRET_0 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 27b3e7b94858f398a8359f332caebd571ed63e8f2c7fec489e9b33d1ed369201b308922b96d15522a75987e6634c61f3\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 451c0c2e870b4971c2f965d75baa1ca1c5bd417aeb6d9f7fd20a45424505249c87d4b4d6437f2c4fe06e0f4652a68564\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 fb6067e497dafcfeb3c8cc5183c64d560d7fd59e012f0def755eb5b54436a9d4f369dd30fc0cad8f629406520edc2116\rEXPORTER_SECRET 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 fc31c6fb0afdb466c17e3cee04564f7061a553239d88b0c7a1711de757d37288814e6a27e00dbad87ef610d5460db8bd\rSERVER_TRAFFIC_SECRET_0 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 c00928d08ab817a90a9abb72b8b3caedeb7f575c917bb923635ec9b6023a4dc205275cc60cf891fe5102b4375a4823e9\rCLIENT_TRAFFIC_SECRET_0 5b30cc82f1b34055a02ba85fa15f08e909a2d4dfe1a07d43143e3c7df0efa250 27b3e7b94858f398a8359f332caebd571ed63e8f2c7fec489e9b33d1ed369201b308922b96d15522a75987e6634c61f3\r"
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 00-01 00-00> (82 ms)
 # [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true
-# /builddir/build/BUILD/grpc-1.45.2/test/cpp/end2end/tls_key_export_test.cc:277: Failure
+# /builddir/build/BUILD/grpc-1.48.1/test/cpp/end2end/tls_key_export_test.cc:277: Failure
 # Value of: server_key_log
-# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 73d93193674a9695da3a647bba6c3f73fbfc97c4aa8ec7c6c5c4fb3bd5c6820ce08c0a1820180e3ce43aab2f75b72aac\rEXPORTER_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 763fa5cb1c97c94afc21ebc009e892dc383e201a6e9e96edc23c17b5cd97f524ba52644a1df4a75615df043de4fbcb39\rSERVER_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d e5f7b8ab7a46968f2ad0dcaf6af74ad22a9da21fb832b5d4bbf307cc791fa5354ba6ba8fc43397b3895b5fc83c8f65f4\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d f5f336b8428667b13bf8a67bb0dcb9c21ba2fe8cfe1281d2a41c55b170b49ae79b4a5d1eac5742d9658af5ef547f344d\rCLIENT_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 6c16bd5f35371de56139a027f06004bc264725922a09bfef8cdf7a33e7b4b8c69f0bf6293e2cb3523c7f22e84410176d\rSERVER_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 ea5bed615069634fe81ec1a9f6096e5ee1c74fe321743a65898eecfbfab9956e73d7de35a9eba0fc55b957ba6cdf34ee\rEXPORTER_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 113d480846d1db2326c46f52559f173d5a390220618ea81afd5a63165a64cc911ff011dbf915de20699251a25036655a\rSERVER_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 443c7cfb34709b1ce2e80592e2192786ee6e1ad86f145a32e1ec9fc076b682b5cdcc7def181fbc51f835cf4888f0f85b\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 8fd27dfdb917133ba4a9dc594821ca3df81fecd60da72dd8f5b779a96cbd3a41ce9e93b435eac4850d29faddb7500dc8\rCLIENT_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 691969bbf02c386f2758cc5dfd197fc7272430902b0c90a4b365ab3a1cc5066a616bc50ad29ceecba6f23dc85bd277e5\rSERVER_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 3c17149401c2b3878cbe3105164d362bba2e098e0d1de09bf69939568a2c69133c0ddc1c8fa76903e5e293b1197a01fb\rEXPORTER_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a e668b4888a058ce00a93da55ac690365336ee6cf331ad2ae97e0b8c837cf0b449aed4940ee2a3ab56c045056c1d5574d\rSERVER_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 7bd47384a53931188daab512bb59cedfd2f309ed189f80ad737f4465cd00fb472cc11992204c2252d534ffc9b48bc097\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 6ae0594f0c38c3abf6a65b428f00347c6aee8b60a54fd702458ab439c6f718c58bdf55b92c42b3d968663e385922294b\rCLIENT_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a cd9ed62e171e71d65580455e7ce374a2a91e15f3f889441144c23b2a54e6c4b2daf98e09525c317d871686872a5f2d81\rSERVER_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 330b459fed7217708e8163baf5eabe6a34a45bbf3d4c1bde32f7bcce29016bec85539ee7724c73d23cbaaa5f8e100a34\rEXPORTER_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff cc32ae2d7a1bd46bc38569ebf0987e36b4ef1037f5280099a80e3ee5cf83a0be1d8283f5d925e12c78b27660de63cc9f\rSERVER_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 2be00b20bdf6157af69c6bac8806d5dfb6c13a3cfa9d314c73d46ead360f3a9c1562eb2eb1a073c86fab2ceda4da2a56\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff e106db0914f10fc6612d4b1cbdeb92bffc3ec4c21ab906a17a3a060b7a5d91e805a41b98822f9a6482e8eb510fb37ba4\rCLIENT_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 7505e76f6398b39352003bbc3268a36a137ef4ecb2a795a8f53e9a77fdf57b5b1e2793f2ed6cb721e991920d87607aa7\rSERVER_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 c96ade516607c05ac9b5016caf4d554ba26c8b540c37eb5d4c6a4f1849b4e50da20614cf55909d0998e744a4b0e9e276\rEXPORTER_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 4e5196a9c611ae860f8b8b7d16f8130fcfdacdf899831997e7a410e18d2d9b19f5eaa2aa79b868b5b6bad29a84e97fff\rSERVER_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 aac75064ad90e8b08818e4c6d0b895639f78f89d5ea9e3bc780b9fc295f2430fd4edb30eef91202bcc61b19774bcbdd9\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 658902e283b741d5057db588d38b0d565fe3479bb242a7b93ec614f94d142b86608c9b6e6e93794c28e06ab7a12e3382\rCLIENT_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 062684c5b1bcb1ba7b1997c88694d06f81a250f7bb90b9c0214989753eca11c2308a0e5431d6c80607ad5cd7f83ad98d\r"
-#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 73d93193674a9695da3a647bba6c3f73fbfc97c4aa8ec7c6c5c4fb3bd5c6820ce08c0a1820180e3ce43aab2f75b72aac\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d f5f336b8428667b13bf8a67bb0dcb9c21ba2fe8cfe1281d2a41c55b170b49ae79b4a5d1eac5742d9658af5ef547f344d\rEXPORTER_SECRET 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 763fa5cb1c97c94afc21ebc009e892dc383e201a6e9e96edc23c17b5cd97f524ba52644a1df4a75615df043de4fbcb39\rSERVER_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d e5f7b8ab7a46968f2ad0dcaf6af74ad22a9da21fb832b5d4bbf307cc791fa5354ba6ba8fc43397b3895b5fc83c8f65f4\rCLIENT_TRAFFIC_SECRET_0 4a8ed2a8c89cd95df5f9d01850058410323c6af346b963681db84235dfa2ec4d 6c16bd5f35371de56139a027f06004bc264725922a09bfef8cdf7a33e7b4b8c69f0bf6293e2cb3523c7f22e84410176d\rSERVER_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 ea5bed615069634fe81ec1a9f6096e5ee1c74fe321743a65898eecfbfab9956e73d7de35a9eba0fc55b957ba6cdf34ee\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 8fd27dfdb917133ba4a9dc594821ca3df81fecd60da72dd8f5b779a96cbd3a41ce9e93b435eac4850d29faddb7500dc8\rEXPORTER_SECRET 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 113d480846d1db2326c46f52559f173d5a390220618ea81afd5a63165a64cc911ff011dbf915de20699251a25036655a\rSERVER_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 443c7cfb34709b1ce2e80592e2192786ee6e1ad86f145a32e1ec9fc076b682b5cdcc7def181fbc51f835cf4888f0f85b\rCLIENT_TRAFFIC_SECRET_0 22d345d7c46834996e8db60793f8dbfe71ea9adc4124ac72934a56418b923736 691969bbf02c386f2758cc5dfd197fc7272430902b0c90a4b365ab3a1cc5066a616bc50ad29ceecba6f23dc85bd277e5\rSERVER_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 3c17149401c2b3878cbe3105164d362bba2e098e0d1de09bf69939568a2c69133c0ddc1c8fa76903e5e293b1197a01fb\rCLIENT_HANDSHAKE_TRAFFIC_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 6ae0594f0c38c3abf6a65b428f00347c6aee8b60a54fd702458ab439c6f718c58bdf55b92c42b3d968663e385922294b\rEXPORTER_SECRET f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a e668b4888a058ce00a93da55ac690365336ee6cf331ad2ae97e0b8c837cf0b449aed4940ee2a3ab56c045056c1d5574d\rSERVER_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a 7bd47384a53931188daab512bb59cedfd2f309ed189f80ad737f4465cd00fb472cc11992204c2252d534ffc9b48bc097\rCLIENT_TRAFFIC_SECRET_0 f274f840c4d297c3fdefa0dd5695c4573c9037075b9d79432e88faa4a187385a cd9ed62e171e71d65580455e7ce374a2a91e15f3f889441144c23b2a54e6c4b2daf98e09525c317d871686872a5f2d81\rSERVER_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 330b459fed7217708e8163baf5eabe6a34a45bbf3d4c1bde32f7bcce29016bec85539ee7724c73d23cbaaa5f8e100a34\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff e106db0914f10fc6612d4b1cbdeb92bffc3ec4c21ab906a17a3a060b7a5d91e805a41b98822f9a6482e8eb510fb37ba4\rEXPORTER_SECRET 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff cc32ae2d7a1bd46bc38569ebf0987e36b4ef1037f5280099a80e3ee5cf83a0be1d8283f5d925e12c78b27660de63cc9f\rSERVER_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 2be00b20bdf6157af69c6bac8806d5dfb6c13a3cfa9d314c73d46ead360f3a9c1562eb2eb1a073c86fab2ceda4da2a56\rCLIENT_TRAFFIC_SECRET_0 3021d89743e0308f3bfe589aa16ed52d82bafe35506b5bfcdc31863f3fa9aaff 7505e76f6398b39352003bbc3268a36a137ef4ecb2a795a8f53e9a77fdf57b5b1e2793f2ed6cb721e991920d87607aa7\rSERVER_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 c96ade516607c05ac9b5016caf4d554ba26c8b540c37eb5d4c6a4f1849b4e50da20614cf55909d0998e744a4b0e9e276\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 658902e283b741d5057db588d38b0d565fe3479bb242a7b93ec614f94d142b86608c9b6e6e93794c28e06ab7a12e3382\rEXPORTER_SECRET 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 4e5196a9c611ae860f8b8b7d16f8130fcfdacdf899831997e7a410e18d2d9b19f5eaa2aa79b868b5b6bad29a84e97fff\rSERVER_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 aac75064ad90e8b08818e4c6d0b895639f78f89d5ea9e3bc780b9fc295f2430fd4edb30eef91202bcc61b19774bcbdd9\rCLIENT_TRAFFIC_SECRET_0 14e07d555479cf6be60e056105482571a0b06a92c686246a0dfecf2c5ef7eb18 062684c5b1bcb1ba7b1997c88694d06f81a250f7bb90b9c0214989753eca11c2308a0e5431d6c80607ad5cd7f83ad98d\r"
-# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 01-01 00-00> (80 ms)
+# Expected: is equal to "SERVER_HANDSHAKE_TRAFFIC_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e c46a83cd4156c9f5a3c53a8d673cb888543a535fcacc6e5a0067ccf92afd7104213effe874ff31ea930210caa480cf27\rEXPORTER_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 07b8fce3c826593d7e66527c22ebc710b4ef64f8c2921b9c89f99ebfca4df37d9852dc0f35ffc0b5046c5daee48b35d4\rSERVER_TRAFFIC_SECRET_0 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 672b3ece1a18396aa4645db0617cf4002c6ce8b039a6b522fa3a6788ec1744b3e189304a99906c24cd95298e258b54ad\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 4fc7b8e8577b8ac51e59f13acf73c8a67a15af43f4965dad6ecfd31136cc09a2b518784925e5c0bf6375f23d5e088113\rCLIENT_TRAFFIC_SECRET_0 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 20bd3408a8d1f2c779e1895c74b639631d645e1b97cf291964a0fa7b4702ad308213170e7784d47cd411d881d258b9e6\rSERVER_HANDSHAKE_TRAFFIC_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 521a5a83ce0b115757dddfc068379813eba5ecbca8e0dc6c8211a05b029b13cb6c4acf359697a9c0b02e55bfdcf1fb57\rEXPORTER_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 15c107ae3607293d1a245dada03d96ca3ac0b2e94447ec6bc6d5af695e54960397c431da64c04c702ea226338128067a\rSERVER_TRAFFIC_SECRET_0 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 5956d61b750355c655304d1aca8d723b15a9b29fe18609784e0b6c8d819e53cf45030669b9a51a886f3f18ca4d1b0f73\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 09045680090473c5920facdcc5849fa98b267803d0216257a0c552806073de15a73d3e47bf28374e030ed4de1ffe9be9\rCLIENT_TRAFFIC_SECRET_0 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 79f9b1819ccd9b69980c4788cd65f87b0d288835c62890234eb0fc942eede6b74a789ce9767bc3245e6363f18ac58fa6\rSERVER_HANDSHAKE_TRAFFIC_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 f491b5d8e9c5bf4a38d12966093f8da613766d4c7dc3f557337b08e4f6b1af105527e2e46f19c4bd947b2b1b5fe3e314\rEXPORTER_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 a2467e5c30484d3f7b3ce05be675c2465a237e1b3d772fd2745e9b181a881a8f9aaee8ae4b7980ab8c934a02c58e61a7\rSERVER_TRAFFIC_SECRET_0 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 990211d781ad8eb19cc2db122eb3868e737aa6b7143799f4b8f72a7ea672bef0e65ab6630924169c6dd2f59f55846aee\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 612f16033cc1e94849dc3a206247c5760421a94f68f2e9cde33b48e616b591d60be853f27b7537aa8f59ad4aec85e55a\rCLIENT_TRAFFIC_SECRET_0 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 2093ffbaa9b85f7cbb4d00653036f3f6986dfaec000b46add51919390b17b49e02ecb34c3be5dc48aa21e218d9d3d70f\rSERVER_HANDSHAKE_TRAFFIC_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 3ae3754f332170315dd4516cb8f062ac5fae2afa54f6820403d22ddb2397ae30b4aa21140a68162acac270a6a71d9f51\rEXPORTER_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 553d9efb308797f20cbfe73096082bf3c07725f0b4d0d151d1c0322aa49623a25184c9fe845069d040d6ec9f0e75f214\rSERVER_TRAFFIC_SECRET_0 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 95c9db31c38deb0c074ee7cea5e8e454ab30afea554f5d7ea5f7e91f28665d9990da2630dd55721046eb87acb3ddb335\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 54d0f425309fe118311e179d8bcd965ef696a9cacca1a78369ef10164dbc7e7418f2ceaf9cceb51033e5984aed76ef3a\rCLIENT_TRAFFIC_SECRET_0 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 9c44fcd6a41a5c3701365fbc28ddc6dd1369ddf82cbaac150995424782d2a0dc0dcf58676b88f939e403fbd5580a74bf\rSERVER_HANDSHAKE_TRAFFIC_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 cbf5ae80e7c2d4f4d8a76bafed3a9b297ec8a35ef6ce8d1b2328afc20a73407b7e237ad100761e81e3dda1a4a7e329e1\rEXPORTER_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 43c3d3ca25c476f8a929cc90101b91e740a54e83e31a1eb651327b7dd597a9a6d30ad62d9eae5f2de21720883fa4ab7f\rSERVER_TRAFFIC_SECRET_0 c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 26af089be6c5e54a725d099b1ddb7d2ce703dce8e84b3575d283703f690c7acce0fd775eac9abf9b2ccb04f49f6bfb1c\rCLIENT_HANDSHAKE_TRAFFIC_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 957b72988d54b864532fe51256a59c55b69b8dfefcbbf81f4378493d0cf3b288fe111f9000c49857d35d63ea3e519d72\rCLIENT_TRAFFIC_SECRET_0 c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 62b416237b731eb435e5392baf3ae37be85c9844f9f55a7440bb74b60a2866b72b09bfaba1f6ea7b07328a38b3595808\r"
+#   Actual: "SERVER_HANDSHAKE_TRAFFIC_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e c46a83cd4156c9f5a3c53a8d673cb888543a535fcacc6e5a0067ccf92afd7104213effe874ff31ea930210caa480cf27\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 4fc7b8e8577b8ac51e59f13acf73c8a67a15af43f4965dad6ecfd31136cc09a2b518784925e5c0bf6375f23d5e088113\rEXPORTER_SECRET 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 07b8fce3c826593d7e66527c22ebc710b4ef64f8c2921b9c89f99ebfca4df37d9852dc0f35ffc0b5046c5daee48b35d4\rSERVER_TRAFFIC_SECRET_0 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 672b3ece1a18396aa4645db0617cf4002c6ce8b039a6b522fa3a6788ec1744b3e189304a99906c24cd95298e258b54ad\rCLIENT_TRAFFIC_SECRET_0 20afdda8ca612c07e6ae5036ce4cd572edf444e61112b85908b15a9ca4ac3a5e 20bd3408a8d1f2c779e1895c74b639631d645e1b97cf291964a0fa7b4702ad308213170e7784d47cd411d881d258b9e6\rSERVER_HANDSHAKE_TRAFFIC_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 521a5a83ce0b115757dddfc068379813eba5ecbca8e0dc6c8211a05b029b13cb6c4acf359697a9c0b02e55bfdcf1fb57\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 09045680090473c5920facdcc5849fa98b267803d0216257a0c552806073de15a73d3e47bf28374e030ed4de1ffe9be9\rEXPORTER_SECRET 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 15c107ae3607293d1a245dada03d96ca3ac0b2e94447ec6bc6d5af695e54960397c431da64c04c702ea226338128067a\rSERVER_TRAFFIC_SECRET_0 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 5956d61b750355c655304d1aca8d723b15a9b29fe18609784e0b6c8d819e53cf45030669b9a51a886f3f18ca4d1b0f73\rCLIENT_TRAFFIC_SECRET_0 27174ce3e1d552c80bd1a22d2cec50f31dee027f362ff7f3bf9f5d77ba464cef 79f9b1819ccd9b69980c4788cd65f87b0d288835c62890234eb0fc942eede6b74a789ce9767bc3245e6363f18ac58fa6\rSERVER_HANDSHAKE_TRAFFIC_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 f491b5d8e9c5bf4a38d12966093f8da613766d4c7dc3f557337b08e4f6b1af105527e2e46f19c4bd947b2b1b5fe3e314\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 612f16033cc1e94849dc3a206247c5760421a94f68f2e9cde33b48e616b591d60be853f27b7537aa8f59ad4aec85e55a\rEXPORTER_SECRET 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 a2467e5c30484d3f7b3ce05be675c2465a237e1b3d772fd2745e9b181a881a8f9aaee8ae4b7980ab8c934a02c58e61a7\rSERVER_TRAFFIC_SECRET_0 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 990211d781ad8eb19cc2db122eb3868e737aa6b7143799f4b8f72a7ea672bef0e65ab6630924169c6dd2f59f55846aee\rCLIENT_TRAFFIC_SECRET_0 37cf050f83316e6f7cb7256d5ece7b9f4c53e014bebdd9bc4393c934c5120ac9 2093ffbaa9b85f7cbb4d00653036f3f6986dfaec000b46add51919390b17b49e02ecb34c3be5dc48aa21e218d9d3d70f\rSERVER_HANDSHAKE_TRAFFIC_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 3ae3754f332170315dd4516cb8f062ac5fae2afa54f6820403d22ddb2397ae30b4aa21140a68162acac270a6a71d9f51\rCLIENT_HANDSHAKE_TRAFFIC_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 54d0f425309fe118311e179d8bcd965ef696a9cacca1a78369ef10164dbc7e7418f2ceaf9cceb51033e5984aed76ef3a\rEXPORTER_SECRET 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 553d9efb308797f20cbfe73096082bf3c07725f0b4d0d151d1c0322aa49623a25184c9fe845069d040d6ec9f0e75f214\rSERVER_TRAFFIC_SECRET_0 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 95c9db31c38deb0c074ee7cea5e8e454ab30afea554f5d7ea5f7e91f28665d9990da2630dd55721046eb87acb3ddb335\rCLIENT_TRAFFIC_SECRET_0 034d3800864d87141abc05a3e17e84726ce10b85d931eb5d00eadd80984dbb7e 9c44fcd6a41a5c3701365fbc28ddc6dd1369ddf82cbaac150995424782d2a0dc0dcf58676b88f939e403fbd5580a74bf\rSERVER_HANDSHAKE_TRAFFIC_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 cbf5ae80e7c2d4f4d8a76bafed3a9b297ec8a35ef6ce8d1b2328afc20a73407b7e237ad100761e81e3dda1a4a7e329e1\rCLIENT_HANDSHAKE_TRAFFIC_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 957b72988d54b864532fe51256a59c55b69b8dfefcbbf81f4378493d0cf3b288fe111f9000c49857d35d63ea3e519d72\rEXPORTER_SECRET c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 43c3d3ca25c476f8a929cc90101b91e740a54e83e31a1eb651327b7dd597a9a6d30ad62d9eae5f2de21720883fa4ab7f\rSERVER_TRAFFIC_SECRET_0 c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 26af089be6c5e54a725d099b1ddb7d2ce703dce8e84b3575d283703f690c7acce0fd775eac9abf9b2ccb04f49f6bfb1c\rCLIENT_TRAFFIC_SECRET_0 c98b2b143864bb78bfb7bac233c1e4bb463eb7bbfe18ed056293e4d8752596c9 62b416237b731eb435e5392baf3ae37be85c9844f9f55a7440bb74b60a2866b72b09bfaba1f6ea7b07328a38b3595808\r"
+# [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 01-01 00-00> (69 ms)
 # [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_false
-# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_false (71 ms)
+# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_false (64 ms)
 # [ RUN      ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_false
-# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_false (70 ms)
-# [----------] 4 tests from TlsKeyLogging/TlsKeyLoggingEnd2EndTest (289 ms total)
-#
+# [       OK ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_false (66 ms)
+# [----------] 4 tests from TlsKeyLogging/TlsKeyLoggingEnd2EndTest (284 ms total)
 # [----------] Global test environment tear-down
-# [==========] 4 tests from 1 test suite ran. (289 ms total)
+# [==========] 4 tests from 1 test suite ran. (284 ms total)
 # [  PASSED  ] 2 tests.
 # [  FAILED  ] 2 tests, listed below:
 # [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_false__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 00-01 00-00>
 # [  FAILED  ] TlsKeyLogging/TlsKeyLoggingEnd2EndTest.KeyLogging/TestScenario__num_listening_ports_5__share_tls_key_log_file_true__enable_tls_key_logging_true, where GetParam() = 8-byte object <05-00 00-00 01-01 00-00>
+# 2 FAILED TESTS
 #
-# Confirmed in 1.46.0 2022-05-10
+# Confirmed in 1.48.1 2022-09-15
 tls_key_export
-
-# Unexplained, flaky:
-#
-# [ RUN      ] XdsTest/XdsSecurityTest.TestTlsConfigurationWithRootPluginUpdate/V3XdsCreds
-# E0514 12:41:31.427154539 3509119 ssl_transport_security.cc:1910] No match found for server name: server.example.com.
-# *** SIGSEGV received at time=1652532091 on cpu 4 ***
-# PC: @     0x7f2f65694f88  (unknown)  grpc_core::CertificateProviderStore::CertificateProviderWrapper::interested_parties()
-#     @               0x34  (unknown)  (unknown)
-#
-# Confirmed in 1.46.1 2022-05-14 (on at least x86_64 and s390x)
-xds_end2end
+%endif
 
 EOF
 } | xargs -r chmod -v a-x
