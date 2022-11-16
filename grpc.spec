@@ -291,6 +291,20 @@ Patch8:         grpc-1.40.0-google-benchmark-1.6.0.patch
 # Should install pkgconfig files under gRPC_INSTALL_LIBDIR
 # https://github.com/grpc/grpc/issues/25635
 Patch9:         %{forgeurl}/pull/29826.patch
+# Use CMake variables for paths in pkg-config files
+#
+# Use @gRPC_INSTALL_LIBDIR@ for libdir; this fixes an incorrect
+# -L/usr/lib on multilib Linux systems where that is the 32-bit library
+# path and the correct path is /usr/lib64.
+#
+# Use @gRPC_INSTALL_INCLUDEDIR@ for consistency.
+#
+# See also:
+# https://lists.fedoraproject.org/archives/list/devel@lists.fedoraproject.org/
+#   thread/P2N35UMQVEXPILAF47RQB53MWRV2GM3J/
+#
+# https://github.com/grpc/grpc/pull/31671
+Patch10:          %{forgeurl}/pull/31671.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
