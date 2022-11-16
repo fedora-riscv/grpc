@@ -298,6 +298,20 @@ Patch10:        0001-Minimal-fix-for-invalid-implicit-absl-string_view-nu.patch
 # Should install pkgconfig files under gRPC_INSTALL_LIBDIR
 # https://github.com/grpc/grpc/issues/25635
 Patch11:          %{forgeurl}/pull/29826.patch
+# Use CMake variables for paths in pkg-config files
+#
+# Use @gRPC_INSTALL_LIBDIR@ for libdir; this fixes an incorrect
+# -L/usr/lib on multilib Linux systems where that is the 32-bit library
+# path and the correct path is /usr/lib64.
+#
+# Use @gRPC_INSTALL_INCLUDEDIR@ for consistency.
+#
+# See also:
+# https://lists.fedoraproject.org/archives/list/devel@lists.fedoraproject.org/
+#   thread/P2N35UMQVEXPILAF47RQB53MWRV2GM3J/
+#
+# https://github.com/grpc/grpc/pull/31671
+Patch12:          %{forgeurl}/pull/31671.patch
 
 Requires:       grpc-data = %{version}-%{release}
 
