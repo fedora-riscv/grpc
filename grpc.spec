@@ -124,7 +124,7 @@
 
 Name:           grpc
 Version:        1.48.4
-Release:        %autorelease
+Release:        %autorelease -e rv64
 Summary:        RPC library and framework
 
 %global srcversion %(echo '%{version}' | sed -r 's/~rc/-pre/')
@@ -905,6 +905,9 @@ echo '===== Building C (core) and C++ components =====' 2>&1
     -DgRPC_BUILD_GRPC_PHP_PLUGIN:BOOL=ON \
     -DgRPC_BUILD_GRPC_PYTHON_PLUGIN:BOOL=ON \
     -DgRPC_BUILD_GRPC_RUBY_PLUGIN:BOOL=ON \
+%ifarch riscv64
+    -D_gRPC_C_CXX_FLAGS='-pthread' \
+%endif
     -GNinja
 %cmake_build
 # ~~~~ Python ~~~~
