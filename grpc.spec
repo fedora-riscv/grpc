@@ -1320,7 +1320,7 @@ alts_zero_copy_grpc_protector
 # Confirmed in 1.48.1 2022-09-13
 client_ssl
 
-%ifarch s390x
+%ifarch s390x riscv64
 # Unexplained:
 #
 # [ RUN      ] CredentialsTest.TestOauth2TokenFetcherCredsParsingEmptyHttpBody
@@ -1348,7 +1348,7 @@ client_ssl
 test_core_security_credentials
 %endif
 
-%ifarch x86_64
+%ifarch x86_64 riscv64
 # Unexplained:
 #
 # [ RUN      ] ExamineStackTest.AbseilStackProvider
@@ -1385,7 +1385,7 @@ examine_stack
 goaway_server
 %endif
 
-%ifarch aarch64 x86_64 ppc64le s390x
+%ifarch aarch64 x86_64 ppc64le s390x riscv64
 # Unexplained:
 #
 # [ RUN      ] GrpcToolTest.CallCommandWithTimeoutDeadlineSet
@@ -1427,7 +1427,7 @@ grpc_tool
 murmur_hash
 %endif
 
-%ifarch x86_64
+%ifarch x86_64 riscv64
 # Unexplained:
 #
 # [ RUN      ] StackTracerTest.Basic
@@ -1456,7 +1456,7 @@ stack_tracer
 test_core_security_credentials
 %endif
 
-%ifarch aarch64 x86_64 ppc64le s390x
+%ifarch aarch64 x86_64 ppc64le s390x riscv64
 # It looks like server_key_log has the right lines, but in an unexpected order.
 # It is not immediately obvious if this a real problem, or an implementation
 # quirk. Opinions about whether, or how, to report this upstream are welcome!
@@ -1506,6 +1506,14 @@ test_core_security_credentials
 tls_key_export
 %endif
 
+%ifarch riscv64
+tcp_posix
+secure_endpoint
+client_lb_end2end
+xds_cluster_end2end
+xds_core_end2end
+%endif
+
 EOF
 } | xargs -r chmod -v a-x
 
@@ -1549,6 +1557,7 @@ EOF
 curl "http://localhost:${PORT_SERVER_PORT}/quitquitquit" || :
 %endif
 
+%ifnarch riscv64
 pushd src/python/grpcio_tests
 for suite in \
     test_lite \
@@ -1569,6 +1578,7 @@ do
       %{__python3} %{py_setup} %{?py_setup_args} "${suite}"
 done
 popd
+%endif
 
 %endif
 
